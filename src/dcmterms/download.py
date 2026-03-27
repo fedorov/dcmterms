@@ -18,25 +18,58 @@ DEFAULT_BASE_URL = (
 )
 
 
-def _discover_cid_urls(base_url: str, session: requests.Session) -> list[str]:
-    """Discover all sect_CID_*.html file URLs from the directory listing."""
+def _discover_urls(
+    base_url: str,
+    session: requests.Session,
+    file_pattern: str,
+    label: str,
+) -> list[str]:
+    """Discover file URLs from the directory listing matching a regex pattern."""
     listing_url = base_url.rstrip("/") + "/"
     logger.info("Fetching directory listing from %s", listing_url)
 
     resp = session.get(listing_url, timeout=60)
     resp.raise_for_status()
 
-    # Extract all sect_CID_*.html references from the directory listing
-    pattern = re.compile(r'HREF="[^"]*?(sect_CID_\d+\.html)"', re.IGNORECASE)
+    pattern = re.compile(rf'HREF="[^"]*?({file_pattern})"', re.IGNORECASE)
     filenames = sorted(set(pattern.findall(resp.text)))
 
     if not filenames:
         raise RuntimeError(
-            f"No sect_CID_*.html files found in directory listing at {listing_url}"
+            f"No {label} files found in directory listing at {listing_url}"
         )
 
-    logger.info("Discovered %d CID files", len(filenames))
+    logger.info("Discovered %d %s files", len(filenames), label)
     return [base_url.rstrip("/") + "/" + f for f in filenames]
+
+
+def _discover_cid_urls(base_url: str, session: requests.Session) -> list[str]:
+    return _discover_urls(base_url, session, r"sect_CID_\d+\.html", "CID")
+
+
+def _discover_tid_urls(base_url: str, session: requests.Session) -> list[str]:
+    """Discover all TID-related file URLs: sect_TID_*, sect_*Templates.html, chapter_A.html."""
+    listing_url = base_url.rstrip("/") + "/"
+    resp = session.get(listing_url, timeout=60)
+    resp.raise_for_status()
+
+    text = resp.text
+    files: set[str] = set()
+
+    # Individual TID files
+    for m in re.finditer(r'HREF="[^"]*?(sect_TID_\w+\.html)"', text, re.IGNORECASE):
+        files.add(m.group(1))
+
+    # Section template files (contain parent TIDs)
+    for m in re.finditer(r'HREF="[^"]*?(sect_\w+Templates\.html)"', text, re.IGNORECASE):
+        files.add(m.group(1))
+
+    # chapter_A.html (contains base templates TID 300-1xxx)
+    if "chapter_A.html" in text:
+        files.add("chapter_A.html")
+
+    logger.info("Discovered %d TID-related files", len(files))
+    return [listing_url + f for f in sorted(files)]
 
 
 def _download_file(
@@ -65,58 +98,16 @@ def _download_file(
     return False
 
 
-def download_chtml(
-    base_url: str = DEFAULT_BASE_URL,
-    cache_dir: Path | None = None,
+def _bulk_download(
+    urls: list[str],
+    cache_dir: Path,
+    session: requests.Session,
     max_workers: int = 2,
     delay: float = 0.25,
 ) -> Path:
-    """Download all CID CHTML files from the DICOM standard website.
-
-    Uses throttled parallel downloads to avoid overwhelming the server.
-    With default settings (2 workers, 0.25s delay), effective rate is
-    ~2 requests/second.
-
-    Returns the directory containing downloaded files.
-    """
-    session = requests.Session()
-    session.headers.update({"User-Agent": "dcmterms/0.1.0"})
-
-    urls = _discover_cid_urls(base_url, session)
-
-    # Determine cache directory
-    if cache_dir is None:
-        cache_dir = Path("cache/part16")
+    """Throttled parallel download of URLs to cache_dir. Returns cache_dir."""
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Check if already downloaded
-    existing = list(cache_dir.glob("sect_CID_*.html"))
-    if len(existing) >= len(urls):
-        logger.info(
-            "Cache already has %d files (need %d), skipping download",
-            len(existing),
-            len(urls),
-        )
-        return cache_dir
-
-    logger.info(
-        "Downloading %d CID files to %s (workers=%d)",
-        len(urls),
-        cache_dir,
-        max_workers,
-    )
-
-    # Also download chapter_B.html for reference
-    dummy_lock = Lock()
-    _download_file(
-        base_url.rstrip("/") + "/chapter_B.html",
-        cache_dir / "chapter_B.html",
-        session,
-        dummy_lock,
-        0,
-    )
-
-    # Throttled parallel download
     cached = 0
     to_download: list[tuple[str, Path]] = []
     for url in urls:
@@ -134,7 +125,7 @@ def download_chtml(
         logger.info("All files already cached")
         return cache_dir
 
-    logger.info("Downloading %d files (~%.0f MB estimated)", total_needed, total_needed * 85 / 1024)
+    logger.info("Downloading %d files", total_needed)
 
     succeeded = 0
     failed = 0
@@ -164,3 +155,45 @@ def download_chtml(
         "Download complete: %d succeeded, %d failed", succeeded, failed
     )
     return cache_dir
+
+
+def download_chtml(
+    base_url: str = DEFAULT_BASE_URL,
+    cache_dir: Path | None = None,
+    max_workers: int = 2,
+    delay: float = 0.25,
+) -> Path:
+    """Download all CID CHTML files from the DICOM standard website.
+
+    Returns the directory containing downloaded files.
+    """
+    session = requests.Session()
+    session.headers.update({"User-Agent": "dcmterms/0.1.0"})
+
+    urls = _discover_cid_urls(base_url, session)
+
+    if cache_dir is None:
+        cache_dir = Path("cache/part16")
+
+    return _bulk_download(urls, cache_dir, session, max_workers, delay)
+
+
+def download_tid_chtml(
+    base_url: str = DEFAULT_BASE_URL,
+    cache_dir: Path | None = None,
+    max_workers: int = 2,
+    delay: float = 0.25,
+) -> Path:
+    """Download all TID-related CHTML files from the DICOM standard website.
+
+    Returns the directory containing downloaded files.
+    """
+    session = requests.Session()
+    session.headers.update({"User-Agent": "dcmterms/0.1.0"})
+
+    urls = _discover_tid_urls(base_url, session)
+
+    if cache_dir is None:
+        cache_dir = Path("cache/part16")
+
+    return _bulk_download(urls, cache_dir, session, max_workers, delay)

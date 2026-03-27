@@ -157,10 +157,13 @@ def _run_extract(args: argparse.Namespace) -> None:
     )
 
     print(f"\nExtraction complete:")
-    print(f"  DICOM edition:      {metadata['dicom_edition']}")
-    print(f"  CID files parsed:   {metadata['total_cid_files_parsed']}")
+    print(f"  DICOM edition:       {metadata['dicom_edition']}")
+    print(f"  CID files parsed:    {metadata['total_cid_files_parsed']}")
     print(f"  Total coded entries: {metadata['total_coded_entries']}")
     print(f"  Unique codes:        {metadata['unique_codes']}")
+    if "total_tid_files_parsed" in metadata:
+        print(f"  TIDs parsed:         {metadata['total_tid_files_parsed']}")
+        print(f"  Template rows:       {metadata['total_template_rows']}")
     print(f"  Relationships:       {metadata['total_relationships']}")
     print(f"\n  Entries by scheme:")
     for scheme, count in sorted(

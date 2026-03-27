@@ -57,6 +57,28 @@ def find_main_table(root: ET.Element) -> ET.Element | None:
     return None
 
 
+def find_table_by_anchor(root: ET.Element, anchor_pattern: str) -> ET.Element | None:
+    """Find a table whose div.table contains an anchor matching the pattern.
+
+    For TIDs, use anchor_pattern like "table_TID_2001" to find the specific
+    TID table (skipping the Parameters table which has anchor "table_TID_2001_Parameters").
+    """
+    for div in root.iter(ns("div")):
+        if div.get("class") != "table":
+            continue
+        # Check if this div contains the target anchor
+        for a in div.iter(ns("a")):
+            aid = a.get("id", "")
+            if re.fullmatch(anchor_pattern, aid):
+                # Found the right div.table — get the table element
+                for tc in div.iter(ns("div")):
+                    if tc.get("class") == "table-contents":
+                        for table in tc.iter(ns("table")):
+                            if table.get("frame") == "box":
+                                return table
+    return None
+
+
 def parse_table_headers(table: ET.Element) -> dict[str, int]:
     """Extract header names from a table's thead, returning {name: column_index}.
 
