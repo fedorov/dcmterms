@@ -89,6 +89,30 @@ def main(argv: list[str] | None = None) -> None:
         help="Enable verbose logging.",
     )
 
+    # validate command
+    validate_parser = subparsers.add_parser(
+        "validate",
+        help="Validate extraction completeness against source files.",
+    )
+    validate_parser.add_argument(
+        "--source",
+        type=str,
+        required=True,
+        help="Path to local directory with sect_CID_*.html files.",
+    )
+    validate_parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("output"),
+        help="Output directory to validate (default: ./output).",
+    )
+    validate_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging.",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -104,6 +128,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_extract(args)
     elif args.command == "download":
         _run_download(args)
+    elif args.command == "validate":
+        _run_validate(args)
 
 
 def _run_extract(args: argparse.Namespace) -> None:
@@ -143,6 +169,18 @@ def _run_extract(args: argparse.Namespace) -> None:
     ):
         print(f"    {scheme:8s} {count:>6d}")
     print(f"\n  Output: {args.output}")
+
+
+def _run_validate(args: argparse.Namespace) -> None:
+    from .validate import run_validation
+
+    source_dir = Path(args.source)
+    if not source_dir.is_dir():
+        print(f"Error: {source_dir} is not a directory", file=sys.stderr)
+        sys.exit(1)
+
+    ok = run_validation(source_dir=source_dir, output_dir=args.output)
+    sys.exit(0 if ok else 1)
 
 
 def _run_download(args: argparse.Namespace) -> None:
