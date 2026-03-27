@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dcmterms"
+version = "0.1.0"
+description = "Extract coded terminology from the DICOM standard"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+dcmterms = "dcmterms.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dcmterms"]

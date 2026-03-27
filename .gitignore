@@ -1,0 +1,10 @@
+output/
+cache/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+*.parquet
