@@ -56,6 +56,26 @@ CHTML (chunked XHTML) pages from the DICOM standard website. Parsed with stdlib 
 - `relationships.csv/.parquet` — Normalized edge list: CID→CID includes, TID→TID includes, TID→CID references. All IDs are strings (TIDs can have letter suffixes like "10003A").
 - `extraction_metadata.json` — Provenance (DICOM edition, date, counts, per-scheme breakdown)
 
+## GCS Cache
+
+Downloaded CHTML source files are archived in GCS organized by DICOM edition:
+
+```
+gs://af-dev-storage/dcmterm/<edition>/part16/
+```
+
+Current: `gs://af-dev-storage/dcmterm/2026b/part16/` (1,800 files, 54 MB)
+
+To use the GCS cache instead of downloading from the DICOM website:
+
+```bash
+# Sync GCS cache to local
+gsutil -m cp -r gs://af-dev-storage/dcmterm/2026b/part16/ ./cache/part16/
+
+# Then extract from local cache
+python -m dcmterms extract --source ./cache/part16 --output ./output
+```
+
 ## BigQuery
 
 Tables loaded into `idc-sandbox-000.dcmterm`. When loading with `bq load`, use explicit schemas for tables with comma-separated string fields (`includes`, `tid_includes`, `cid_references`) — `--autodetect` misinterprets them as floats. Use `--skip_leading_rows=1` with explicit schemas.
