@@ -63,7 +63,9 @@
                   border-bottom: 1px solid #eaeef2; }
     .cid-chips { display: flex; flex-wrap: wrap; gap: 5px; }
     .cid-chip { display: inline-block; padding: 2px 8px; border-radius: 4px;
-                font-size: 11px; background: #e8f0fe; color: #1a56b0; }
+                font-size: 11px; background: #e8f0fe; color: #1a56b0;
+                text-decoration: none; }
+    .cid-chip:hover { background: #d0e2fc; }
     .cid-chip .cid-num { color: #6080b0; margin-right: 4px; }
 
     .placeholder { text-align: center; padding: 52px 24px; color: #888; }
@@ -381,7 +383,8 @@ async function toggleCidRow(btn) {
     const chips = cids.map(r => {
       const num  = String(r['cid_number'] ?? '');
       const name = String(r['cid_name']   ?? '');
-      return `<span class="cid-chip"><span class="cid-num">CID ${esc(num)}</span>${esc(name)}</span>`;
+      const cidUrl = `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_${esc(num)}.html`;
+      return `<a class="cid-chip" href="${cidUrl}" target="_blank" rel="noopener"><span class="cid-num">CID ${esc(num)}</span>${esc(name)}</a>`;
     }).join('');
 
     const expRow = document.createElement('tr');
