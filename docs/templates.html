@@ -2,113 +2,289 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SR Templates — dcmterms</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%231a3a5c'/%3E%3Crect x='5' y='8' width='22' height='4' rx='1' fill='white'/%3E%3Crect x='5' y='14' width='22' height='2.5' rx='1' fill='rgba(255,255,255,0.55)'/%3E%3Crect x='5' y='18.5' width='22' height='2.5' rx='1' fill='rgba(255,255,255,0.55)'/%3E%3Crect x='5' y='23' width='22' height='2.5' rx='1' fill='rgba(255,255,255,0.55)'/%3E%3C/svg%3E">
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script>
+    if (typeof echarts === 'undefined') {
+      document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"><\/scr'+'ipt>');
+    }
+  </script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; font-size: 14px;
-           color: #1a1a1a; background: #f0f4f8;
-           height: 100vh; overflow: hidden;
-           display: flex; flex-direction: column; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f0f4f8;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
 
     /* ── Header ── */
-    header { background: #1a3a5c; color: white; padding: 10px 20px;
-             display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
-    .back-link { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 13px;
-                 display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    header {
+      background: #1a3a5c;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .back-link {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
     .back-link:hover { color: white; }
     .header-sep { color: rgba(255,255,255,0.3); font-size: 16px; }
     header h1 { font-size: 17px; font-weight: 600; }
-    .badge { background: rgba(255,255,255,0.15); border-radius: 4px;
-             padding: 2px 9px; font-size: 12px; white-space: nowrap; }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 2px 9px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+    }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .dot.loading { background: #93c5fd; }
+    .dot.error   { background: #f87171; animation: none; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
 
-    /* ── App shell ── */
-    #appShell { display: flex; flex: 1; overflow: hidden; }
+    /* ── Control panel ── */
+    .control-panel {
+      background: white;
+      border-bottom: 1px solid #e0e4e8;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .search-wrap { position: relative; }
+    .search-wrap svg {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      pointer-events: none;
+    }
+    #searchInput {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 6px 10px 6px 30px;
+      font-size: 13px;
+      width: 230px;
+      background: white;
+    }
+    #searchInput:focus {
+      outline: none;
+      border-color: #1a3a5c;
+      box-shadow: 0 0 0 3px rgba(26,58,92,0.12);
+    }
 
-    /* ── Sidebar ── */
-    #sidebar { width: 280px; flex-shrink: 0; display: flex; flex-direction: column;
-               overflow: hidden; background: white; border-right: 1px solid #dde3ea; }
-    .sidebar-header { flex-shrink: 0; padding: 10px 12px 8px;
-                      border-bottom: 1px solid #eaeef2; background: #f8fafc; }
-    #tidSearch { width: 100%; padding: 7px 10px; border: 1px solid #ccc;
-                 border-radius: 6px; font-size: 13px; }
-    #tidSearch:focus { outline: none; border-color: #1a3a5c;
-                       box-shadow: 0 0 0 3px rgba(26,58,92,0.12); }
-    .sidebar-filter { display: flex; align-items: center; gap: 6px;
-                      font-size: 12px; color: #445; margin-top: 8px; cursor: pointer; }
-    .sidebar-filter input { cursor: pointer; }
-    #tidCount { font-size: 11px; color: #889; margin-top: 5px; }
+    .toggle-btn {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      background: white;
+      color: #778;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .toggle-btn.active-tid {
+      border-color: #1a3a5c;
+      color: #1a3a5c;
+      background: #e8f0fe;
+    }
+    .toggle-btn.active-cid {
+      border-color: #2d7a4f;
+      color: #2d7a4f;
+      background: #e6f4ed;
+    }
+    #statsText { margin-left: auto; font-size: 12px; color: #889; }
 
-    #tidList { flex: 1; overflow-y: auto; }
-    .tid-item { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
-                border-left: 3px solid transparent; }
-    .tid-item:hover { background: #f5f7fa; }
-    .tid-item.active { background: #e8f0fe; border-left-color: #1a3a5c; }
-    .tid-item-top { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .tid-id-label { font-size: 11px; font-weight: 700; font-family: monospace;
-                    color: #1a3a5c; }
-    .root-badge { font-size: 10px; font-weight: 700; background: #1a3a5c; color: white;
-                  padding: 1px 5px; border-radius: 3px; }
-    .retired-badge { font-size: 10px; font-weight: 700; background: #aaa; color: white;
-                     padding: 1px 5px; border-radius: 3px; }
-    .tid-name { font-size: 12px; color: #334; margin-top: 2px; line-height: 1.3; }
+    /* ── Main ── */
+    #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
+    #chart-container { flex: 1; height: 100%; }
 
-    .list-loading { padding: 32px; text-align: center; color: #888; }
-    .spinner { display: inline-block; width: 18px; height: 18px; margin-bottom: 8px;
-               border: 3px solid #e0e0e0; border-top-color: #1a3a5c;
-               border-radius: 50%; animation: spin 0.8s linear infinite; }
+    /* ── Detail panel ── */
+    #detail-panel {
+      width: 340px;
+      flex-shrink: 0;
+      background: white;
+      border-left: 1px solid #dde3ea;
+      overflow-y: auto;
+      padding: 14px 16px;
+    }
+    #detail-panel.hidden { display: none; }
+    #close-panel {
+      float: right;
+      background: none;
+      border: none;
+      color: #889;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    #close-panel:hover { color: #334; }
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1a3a5c;
+      margin-bottom: 3px;
+      padding-right: 24px;
+    }
+    .panel-title.cid { color: #2d7a4f; }
+    .panel-subtitle {
+      font-size: 0.85rem;
+      color: #556;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+    .meta-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .meta-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+    .meta-tag.type-tid  { background: #e8f0fe; color: #1a56b0; }
+    .meta-tag.type-cid  { background: #e6f4ed; color: #2d7a4f; }
+    .meta-tag.root-tag  { background: #dbeafe; color: #1e40af; }
+    .meta-tag.rows-tag  { background: #f0f4f8; color: #667; }
+
+    .panel-section {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334;
+      margin: 12px 0 7px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e8edf2;
+    }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.12s;
+      font-family: monospace;
+    }
+    .chip.tid { background: #e8f0fe; color: #1a56b0; }
+    .chip.tid:hover { background: #d0e2fc; }
+    .chip.cid { background: #e6f4ed; color: #2d7a4f; }
+    .chip.cid:hover { background: #c8e9d8; }
+
+    .dicom-btn {
+      display: block;
+      text-align: center;
+      padding: 9px 14px;
+      margin-top: 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .dicom-btn.tid-btn {
+      background: rgba(26,58,92,0.07);
+      border: 1px solid #1a3a5c;
+      color: #1a3a5c;
+    }
+    .dicom-btn.tid-btn:hover { background: rgba(26,58,92,0.14); }
+    .dicom-btn.cid-btn {
+      background: rgba(45,122,79,0.07);
+      border: 1px solid #2d7a4f;
+      color: #2d7a4f;
+    }
+    .dicom-btn.cid-btn:hover { background: rgba(45,122,79,0.14); }
+
+    /* ── Graph hint ── */
+    #graph-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.88);
+      color: #667;
+      font-size: 11.5px;
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1px solid #dde3ea;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: opacity 0.5s;
+    }
+    #graph-hint.hidden { opacity: 0; }
+    #graph-hint kbd {
+      display: inline-block;
+      background: #f0f4f8;
+      border: 1px solid #d0d8e0;
+      border-radius: 3px;
+      padding: 0 4px;
+      font-family: inherit;
+      font-size: 10.5px;
+      color: #445;
+    }
+
+    /* ── Loading overlay ── */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(240,244,248,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      gap: 14px;
+    }
+    #loadingOverlay.hidden { display: none; }
+    #loadingOverlay p { color: #556; font-size: 14px; }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #d0d8e4;
+      border-top-color: #1a3a5c;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Graph area ── */
-    #graphArea { flex: 1; display: flex; flex-direction: column; overflow: hidden;
-                 position: relative; background: #f8fafc; }
-
-    #graphControls { flex-shrink: 0; height: 38px; background: white;
-                     border-bottom: 1px solid #e0e4e8;
-                     display: flex; align-items: center; gap: 16px; padding: 0 14px;
-                     font-size: 12px; color: #445; }
-    #graphControls label { display: flex; align-items: center; gap: 5px; cursor: pointer;
-                           user-select: none; }
-    #graphControls input[type=checkbox] { cursor: pointer; }
-    #graphStatus { margin-left: auto; color: #889; font-size: 11px; white-space: nowrap; }
-
-    #cy { flex: 1; }
-
-    #emptyState { position: absolute; inset: 0; top: 38px; z-index: 5;
-                  display: flex; flex-direction: column; align-items: center;
-                  justify-content: center; background: #f8fafc;
-                  color: #778; pointer-events: none; }
-    #emptyState h2 { font-size: 16px; font-weight: 400; color: #556; margin-bottom: 8px; }
-    #emptyState p { font-size: 13px; line-height: 1.6; text-align: center; }
-    #emptyState .empty-icon { font-size: 36px; margin-bottom: 14px; }
-
-    /* ── Info panel ── */
-    #infoPanel { flex-shrink: 0; background: white; border-top: 1px solid #dde3ea;
-                 padding: 10px 14px; min-height: 110px; max-height: 160px; overflow-y: auto; }
-    #infoPanel.hidden { display: none; }
-    .info-header { display: flex; align-items: center; justify-content: space-between;
-                   margin-bottom: 6px; gap: 8px; flex-wrap: wrap; }
-    .info-header-left { display: flex; align-items: center; gap: 8px; }
-    .info-type-badge { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 3px;
-                       color: white; white-space: nowrap; }
-    .info-type-badge.tid { background: #1a3a5c; }
-    .info-type-badge.cid { background: #2d7a4f; }
-    .info-label { font-size: 14px; font-weight: 600; color: #1a1a1a; }
-    .info-header-right { display: flex; align-items: center; gap: 8px; }
-    .dicom-link { font-size: 12px; color: #1a56b0; text-decoration: none; white-space: nowrap; }
-    .dicom-link:hover { text-decoration: underline; }
-    #closeInfoBtn { background: none; border: none; font-size: 18px; line-height: 1;
-                    color: #889; cursor: pointer; padding: 0 2px; }
-    #closeInfoBtn:hover { color: #334; }
-    .info-dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 12px; }
-    .info-dl dt { color: #778; white-space: nowrap; }
-    .info-dl dd { color: #334; }
-
-    /* ── Status bar ── */
-    #statusBar { flex-shrink: 0; padding: 4px 16px; font-size: 12px; color: #666;
-                 background: #fafafa; border-top: 1px solid #ebebeb; min-height: 24px; }
-    #statusBar.error { color: #c0392b; background: #fef0ee; }
   </style>
 </head>
 <body>
@@ -125,67 +301,46 @@
   <h1>SR Templates</h1>
   <span class="badge" id="editionBadge">Loading…</span>
   <span class="badge" id="countBadge"></span>
+  <div class="status-row">
+    <span class="dot loading" id="statusDot"></span>
+    <span id="statusText">Initializing…</span>
+  </div>
 </header>
 
-<div id="appShell">
-
-  <aside id="sidebar">
-    <div class="sidebar-header">
-      <input id="tidSearch" type="search" placeholder="Filter by name or number…"
-             autocomplete="off" spellcheck="false">
-      <label class="sidebar-filter">
-        <input type="checkbox" id="filterRoot">
-        Root templates only
-      </label>
-      <div id="tidCount">Loading…</div>
-    </div>
-    <div id="tidList">
-      <div class="list-loading">
-        <div class="spinner"></div>
-        <div>Loading templates…</div>
-      </div>
-    </div>
-  </aside>
-
-  <div id="graphArea">
-    <div id="graphControls">
-      <label><input type="checkbox" id="showCids" checked> CID nodes</label>
-      <label><input type="checkbox" id="showTidEdges" checked> TID→TID edges</label>
-      <label><input type="checkbox" id="showCidRefs" checked> TID→CID edges</label>
-      <span id="graphStatus"></span>
-    </div>
-
-    <div id="cy"></div>
-
-    <div id="emptyState">
-      <div class="empty-icon">📋</div>
-      <h2>Select a template to explore</h2>
-      <p>Choose an SR Template from the list on the left<br>
-         to visualize its include and Context Group reference relationships.</p>
-    </div>
-
-    <div id="infoPanel" class="hidden">
-      <div class="info-header">
-        <div class="info-header-left">
-          <span class="info-type-badge" id="infoTypeBadge"></span>
-          <span class="info-label" id="infoLabel"></span>
-        </div>
-        <div class="info-header-right">
-          <a class="dicom-link" id="infoLink" href="#" target="_blank" rel="noopener">
-            View in DICOM Standard ↗
-          </a>
-          <button id="closeInfoBtn" title="Close">×</button>
-        </div>
-      </div>
-      <dl class="info-dl" id="infoDetails"></dl>
-    </div>
+<div class="control-panel">
+  <div class="search-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.5">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="searchInput" type="search"
+           placeholder="Search templates or context groups…" autocomplete="off" spellcheck="false">
   </div>
-
+  <button class="toggle-btn active-tid" id="btnTidEdges">TID→TID includes</button>
+  <button class="toggle-btn active-cid" id="btnCidRefs">TID→CID references</button>
+  <button class="toggle-btn active-cid" id="btnCidNodes">CID nodes</button>
+  <span id="statsText"></span>
 </div>
 
-<div id="statusBar">Initializing DuckDB…</div>
+<div id="main-content">
+  <div id="chart-container"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.33.2/dist/cytoscape.min.js"></script>
+  <div id="detail-panel" class="hidden">
+    <button id="close-panel">×</button>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<div id="graph-hint">
+  <kbd>hover</kbd> to highlight neighbours &nbsp;·&nbsp;
+  <kbd>click</kbd> for details &nbsp;·&nbsp;
+  drag to pan &nbsp;·&nbsp; scroll to zoom
+</div>
+
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingText">Initializing DuckDB…</p>
+</div>
 
 <script type="importmap">
 { "imports": { "apache-arrow": "https://esm.sh/apache-arrow@18" } }
@@ -193,64 +348,61 @@
 <script type="module">
 import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/dist/duckdb-browser.mjs';
 
-// ── DOM refs ────────────────────────────────────────────────────────────────
-const editionBadge = document.getElementById('editionBadge');
-const countBadge   = document.getElementById('countBadge');
-const statusBar    = document.getElementById('statusBar');
-const tidSearch    = document.getElementById('tidSearch');
-const filterRoot   = document.getElementById('filterRoot');
-const tidCount     = document.getElementById('tidCount');
-const tidList      = document.getElementById('tidList');
-const emptyState   = document.getElementById('emptyState');
-const infoPanel    = document.getElementById('infoPanel');
-const infoTypeBadge = document.getElementById('infoTypeBadge');
-const infoLabel    = document.getElementById('infoLabel');
-const infoLink     = document.getElementById('infoLink');
-const infoDetails  = document.getElementById('infoDetails');
-const closeInfoBtn = document.getElementById('closeInfoBtn');
-const graphStatus  = document.getElementById('graphStatus');
-const showCids     = document.getElementById('showCids');
-const showTidEdges = document.getElementById('showTidEdges');
-const showCidRefs  = document.getElementById('showCidRefs');
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const editionBadge   = document.getElementById('editionBadge');
+const countBadge     = document.getElementById('countBadge');
+const statusDot      = document.getElementById('statusDot');
+const statusText     = document.getElementById('statusText');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingText    = document.getElementById('loadingText');
+const searchInput    = document.getElementById('searchInput');
+const btnTidEdges    = document.getElementById('btnTidEdges');
+const btnCidRefs     = document.getElementById('btnCidRefs');
+const btnCidNodes    = document.getElementById('btnCidNodes');
+const statsText      = document.getElementById('statsText');
+const detailPanel    = document.getElementById('detail-panel');
+const panelContent   = document.getElementById('panel-content');
+const closePanel     = document.getElementById('close-panel');
+const graphHint      = document.getElementById('graph-hint');
 
-// ── State ───────────────────────────────────────────────────────────────────
-let cy = null;
-let allTids = [];           // [{tid_id, tid_name, tid_type, root, num_rows}]
-let tidMap  = new Map();    // tid_id -> metadata
-let cidMap  = new Map();    // cid_number_str -> {cid_name, cid_type}
-let adjacency = new Map();  // 'TID:1500' -> [{target_type, target_id, relationship}]
-let currentTidId = null;
+// ── State ─────────────────────────────────────────────────────────────────────
+let myChart = null;
+let allNodes = [];
+let allLinks = [];
+const tidMap    = new Map();   // tid_id -> {tid_name, tid_type, root, num_rows}
+const cidMap    = new Map();   // cid_number_str -> {cid_name, cid_type}
+const adjacency = new Map();   // 'TID:1500' -> [{target_type, target_id, relationship}]
+const nodeIdxMap = new Map();  // node id -> data index in last render
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+const filter = { showTidTid: true, showCidRefs: true, showCids: true };
+let searchQuery = '';
+let debounceTimer = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const TID_URL = id  => `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_TID_${id}.html`;
 const CID_URL = num => `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_${num}.html`;
 
-function setStatus(msg, isError = false) {
-  statusBar.textContent = msg;
-  statusBar.className = isError ? 'error' : '';
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function truncate(s, n) {
-  return s.length > n ? s.slice(0, n - 1) + '\u2026' : s;
+function setStatus(msg, state = 'ok') {
+  statusText.textContent = msg;
+  statusDot.className = 'dot' +
+    (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
 }
 
-function tidSortKey(id) {
-  const num = id.replace(/[A-Za-z]+$/, '').padStart(6, '0');
-  const suf = id.replace(/^\d+/, '');
-  return num + suf;
-}
-
-// ── Metadata ─────────────────────────────────────────────────────────────────
+// ── Metadata ──────────────────────────────────────────────────────────────────
 async function loadMetadata() {
   try {
     const meta = await (await fetch('./data/extraction_metadata.json')).json();
     editionBadge.textContent = `Edition: ${meta.dicom_edition} · ${meta.extraction_date}`;
-  } catch {
-    editionBadge.textContent = 'DICOM Terminology';
-  }
+  } catch { editionBadge.textContent = 'DICOM Terminology'; }
 }
 
-// ── DuckDB init ──────────────────────────────────────────────────────────────
+// ── DuckDB init ───────────────────────────────────────────────────────────────
 async function initDB() {
   const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
   const workerUrl = URL.createObjectURL(
@@ -269,359 +421,345 @@ async function registerParquet(db, name) {
   await db.registerFileBuffer(`${name}.parquet`, new Uint8Array(await resp.arrayBuffer()));
 }
 
-// ── Load all data ────────────────────────────────────────────────────────────
+// ── Load data ──────────────────────────────────────────────────────────────────
 async function loadAllData(conn) {
-  // Templates
-  const tplResult = await conn.query(
-    `SELECT tid_id, tid_name, tid_type, root, num_rows FROM templates`
-  );
-  for (const row of tplResult.toArray()) {
-    const t = {
-      tid_id:   String(row['tid_id']   ?? ''),
-      tid_name: String(row['tid_name'] ?? ''),
-      tid_type: String(row['tid_type'] ?? ''),
-      root:     String(row['root']     ?? ''),
-      num_rows: Number(row['num_rows'] ?? 0),
-    };
-    allTids.push(t);
-    tidMap.set(t.tid_id, t);
-  }
-  allTids.sort((a, b) => {
-    const ar = a.root === 'yes', br = b.root === 'yes';
-    if (ar !== br) return ar ? -1 : 1;
-    return tidSortKey(a.tid_id).localeCompare(tidSortKey(b.tid_id));
-  });
-
-  // Context groups (cid_number is integer in parquet — cast to string)
-  const cgResult = await conn.query(
-    `SELECT cid_number::VARCHAR AS cid_number, cid_name, cid_type FROM context_groups`
-  );
-  for (const row of cgResult.toArray()) {
-    const num = String(row['cid_number'] ?? '');
-    cidMap.set(num, {
-      cid_name: String(row['cid_name'] ?? ''),
-      cid_type: String(row['cid_type'] ?? ''),
+  for (const r of (await conn.query(`SELECT tid_id, tid_name, tid_type, root, num_rows FROM templates`)).toArray()) {
+    tidMap.set(String(r['tid_id'] ?? ''), {
+      tid_name: String(r['tid_name'] ?? ''),
+      tid_type: String(r['tid_type'] ?? ''),
+      root:     String(r['root']     ?? ''),
+      num_rows: Number(r['num_rows'] ?? 0),
     });
   }
 
-  // Relationships — TID-sourced only, deduplicated
-  const relResult = await conn.query(
-    `SELECT DISTINCT source_id, target_type, target_id, relationship
-     FROM relationships WHERE source_type = 'TID'`
-  );
-  for (const row of relResult.toArray()) {
-    const key = 'TID:' + String(row['source_id'] ?? '');
+  for (const r of (await conn.query(`SELECT cid_number::VARCHAR AS n, cid_name, cid_type FROM context_groups`)).toArray()) {
+    cidMap.set(String(r['n'] ?? ''), {
+      cid_name: String(r['cid_name'] ?? ''),
+      cid_type: String(r['cid_type'] ?? ''),
+    });
+  }
+
+  for (const r of (await conn.query(
+    `SELECT DISTINCT source_id, target_type, target_id, relationship FROM relationships WHERE source_type='TID'`
+  )).toArray()) {
+    const key = 'TID:' + String(r['source_id'] ?? '');
     if (!adjacency.has(key)) adjacency.set(key, []);
     adjacency.get(key).push({
-      target_type: String(row['target_type'] ?? ''),
-      target_id:   String(row['target_id']   ?? ''),
-      relationship: String(row['relationship'] ?? ''),
+      target_type:  String(r['target_type']  ?? ''),
+      target_id:    String(r['target_id']    ?? ''),
+      relationship: String(r['relationship'] ?? ''),
     });
   }
 }
 
-// ── Cytoscape init ────────────────────────────────────────────────────────────
-function initCytoscape() {
-  cy = cytoscape({
-    container: document.getElementById('cy'),
-    elements: [],
-    style: [
-      {
-        selector: 'node[type = "TID"]',
-        style: {
-          'background-color': '#1a3a5c',
-          'color': 'white',
-          'shape': 'round-rectangle',
-          'width': 160,
-          'height': 50,
-          'label': 'data(label)',
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'text-wrap': 'wrap',
-          'text-max-width': '144px',
-          'font-size': '11px',
-          'font-family': 'system-ui, -apple-system, sans-serif',
-          'border-width': 0,
-        }
-      },
-      {
-        selector: 'node[type = "TID"][root = "yes"]',
-        style: {
-          'border-width': 3,
-          'border-color': '#4a8abf',
-        }
-      },
-      {
-        selector: 'node.focused',
-        style: {
-          'border-width': 4,
-          'border-color': '#e8a020',
-        }
-      },
-      {
-        selector: 'node[type = "CID"]',
-        style: {
-          'background-color': '#2d7a4f',
-          'color': 'white',
-          'shape': 'round-rectangle',
-          'width': 148,
-          'height': 46,
-          'label': 'data(label)',
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'text-wrap': 'wrap',
-          'text-max-width': '132px',
-          'font-size': '10px',
-          'font-family': 'system-ui, -apple-system, sans-serif',
-        }
-      },
-      {
-        selector: 'edge[relationship = "includes"]',
-        style: {
-          'line-color': '#3a6a9c',
-          'target-arrow-color': '#3a6a9c',
-          'target-arrow-shape': 'triangle',
-          'curve-style': 'bezier',
-          'label': 'includes',
-          'font-size': '9px',
-          'color': '#3a6a9c',
-          'text-rotation': 'autorotate',
-          'text-background-color': '#f8fafc',
-          'text-background-opacity': 0.85,
-          'text-background-padding': '2px',
-        }
-      },
-      {
-        selector: 'edge[relationship = "references"]',
-        style: {
-          'line-color': '#3a9a6f',
-          'target-arrow-color': '#3a9a6f',
-          'target-arrow-shape': 'triangle',
-          'curve-style': 'bezier',
-          'line-style': 'dashed',
-          'line-dash-pattern': [8, 4],
-          'label': 'references',
-          'font-size': '9px',
-          'color': '#3a9a6f',
-          'text-rotation': 'autorotate',
-          'text-background-color': '#f8fafc',
-          'text-background-opacity': 0.85,
-          'text-background-padding': '2px',
-        }
-      },
-      {
-        selector: 'node:active',
-        style: { 'overlay-opacity': 0.1 }
-      },
-    ],
-    layout: { name: 'preset' },
-    userZoomingEnabled: true,
-    userPanningEnabled: true,
-    minZoom: 0.08,
-    maxZoom: 4,
-  });
-
-  cy.on('tap', 'node', onNodeClick);
-}
-
-// ── Sidebar rendering ─────────────────────────────────────────────────────────
-function renderTidList() {
-  const q = tidSearch.value.trim().toLowerCase();
-  const rootOnly = filterRoot.checked;
-
-  const filtered = allTids.filter(t => {
-    if (rootOnly && t.root !== 'yes') return false;
-    if (!q) return true;
-    return t.tid_id.includes(q) || t.tid_name.toLowerCase().includes(q);
-  });
-
-  tidCount.textContent = `${filtered.length} of ${allTids.length} templates`;
-
-  if (filtered.length === 0) {
-    tidList.innerHTML = `<div class="list-loading" style="padding:20px;color:#889">No templates match</div>`;
-    return;
-  }
-
-  tidList.innerHTML = filtered.map(t => {
-    const active = t.tid_id === currentTidId ? ' active' : '';
-    const rootBadge = t.root === 'yes' ? `<span class="root-badge">root</span>` : '';
-    const retiredBadge = t.root === '' && t.tid_type === '' ? `<span class="retired-badge">retired</span>` : '';
-    return `<div class="tid-item${active}" data-tid="${esc(t.tid_id)}">
-      <div class="tid-item-top">
-        <span class="tid-id-label">TID ${esc(t.tid_id)}</span>
-        ${rootBadge}${retiredBadge}
-      </div>
-      <div class="tid-name">${esc(t.tid_name)}</div>
-    </div>`;
-  }).join('');
-
-  tidList.querySelectorAll('.tid-item').forEach(el =>
-    el.addEventListener('click', () => focusOnTID(el.dataset.tid))
-  );
-}
-
-// ── Focus on TID ──────────────────────────────────────────────────────────────
-function focusOnTID(tidId) {
-  currentTidId = tidId;
-  const info = tidMap.get(tidId);
-  if (!info) return;
-
-  const edges = adjacency.get('TID:' + tidId) ?? [];
-  const elements = [];
-  const addedNodes = new Set();
-  const addedEdges = new Set();
-
-  // Center node
-  const centerLabel = `TID ${tidId}\n${truncate(info.tid_name, 35)}`;
-  elements.push({ data: {
-    id: 'TID:' + tidId, type: 'TID', tid_id: tidId,
-    label: centerLabel, root: info.root
-  }, classes: 'focused' });
-  addedNodes.add('TID:' + tidId);
-
-  let tidIncludeCount = 0, cidRefCount = 0;
-
-  for (const edge of edges) {
-    const { target_type, target_id, relationship } = edge;
-    const nodeKey = target_type + ':' + target_id;
-    const edgeKey = `TID:${tidId}__${nodeKey}__${relationship}`;
-    if (addedEdges.has(edgeKey)) continue;
-    addedEdges.add(edgeKey);
-
-    if (!addedNodes.has(nodeKey)) {
-      addedNodes.add(nodeKey);
-      if (target_type === 'TID') {
-        const t = tidMap.get(target_id);
-        elements.push({ data: {
-          id: nodeKey, type: 'TID', tid_id: target_id,
-          label: `TID ${target_id}\n${truncate(t ? t.tid_name : target_id, 35)}`,
-          root: t ? t.root : '',
-        }});
-      } else {
-        const c = cidMap.get(target_id);
-        elements.push({ data: {
-          id: nodeKey, type: 'CID', cid_number: target_id,
-          label: `CID ${target_id}\n${truncate(c ? c.cid_name : target_id, 35)}`,
-        }});
-      }
+// ── Build graph data ───────────────────────────────────────────────────────────
+function buildGraphData() {
+  const degree = new Map();
+  for (const [key, edges] of adjacency) {
+    for (const e of edges) {
+      const tgt = e.target_type + ':' + e.target_id;
+      degree.set(key, (degree.get(key) || 0) + 1);
+      degree.set(tgt, (degree.get(tgt) || 0) + 1);
     }
-
-    elements.push({ data: {
-      id: edgeKey, source: 'TID:' + tidId, target: nodeKey, relationship,
-    }});
-
-    if (target_type === 'TID') tidIncludeCount++;
-    else cidRefCount++;
   }
 
-  cy.elements().remove();
-  cy.add(elements);
-  applyVisibilityToggles();
+  const refCids = new Set();
+  for (const edges of adjacency.values())
+    for (const e of edges) if (e.target_type === 'CID') refCids.add(e.target_id);
 
-  cy.layout({
-    name: 'breadthfirst',
-    roots: ['TID:' + tidId],
-    directed: true,
-    padding: 48,
-    spacingFactor: 1.4,
-    avoidOverlap: true,
-  }).run();
+  for (const [id, t] of tidMap) {
+    const deg = degree.get('TID:' + id) || 0;
+    allNodes.push({
+      id: 'TID:' + id,
+      name: `TID ${id}`,
+      value: deg,
+      category: t.root === 'yes' ? 1 : 0,
+      symbolSize: Math.max(8, Math.min(28, 8 + Math.sqrt(deg) * 2.8)),
+      label: { show: false },
+      _type: 'TID', _tid_id: id, _srch: (`tid${id} ${t.tid_name}`).toLowerCase(),
+    });
+  }
 
-  cy.fit(cy.elements(':visible'), 48);
+  for (const num of refCids) {
+    const c = cidMap.get(num);
+    const deg = degree.get('CID:' + num) || 0;
+    allNodes.push({
+      id: 'CID:' + num,
+      name: `CID ${num}`,
+      value: deg,
+      category: 2,
+      symbolSize: Math.max(6, Math.min(18, 6 + Math.sqrt(deg) * 2.0)),
+      label: { show: false },
+      _type: 'CID', _cid_num: num, _srch: (`cid${num} ${c ? c.cid_name : ''}`).toLowerCase(),
+    });
+  }
 
-  graphStatus.textContent = `${tidIncludeCount} TID include${tidIncludeCount !== 1 ? 's' : ''} · ${cidRefCount} CID reference${cidRefCount !== 1 ? 's' : ''}`;
+  for (const [srcKey, edges] of adjacency) {
+    for (const { target_type, target_id, relationship } of edges) {
+      allLinks.push({
+        source: srcKey,
+        target: target_type + ':' + target_id,
+        value: relationship,
+        lineStyle: {
+          color: relationship === 'includes' ? '#3a6a9c' : '#2d7a4f',
+          type:  relationship === 'includes' ? 'solid' : 'dashed',
+          opacity: 0.22,
+          width: 1,
+        },
+        _rel: relationship,
+      });
+    }
+  }
 
-  emptyState.style.display = 'none';
-  showInfoPanel('TID', tidId);
+  countBadge.textContent = `${tidMap.size} templates · ${refCids.size} context groups`;
+}
 
-  // Update sidebar active state without full re-render
-  tidList.querySelectorAll('.tid-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.tid === tidId);
+function updateStats() {
+  const vn = allNodes.filter(n => n._type === 'TID' || filter.showCids).length;
+  const vl = allLinks.filter(l => {
+    if (l._rel === 'includes'   && !filter.showTidTid)  return false;
+    if (l._rel === 'references' && !filter.showCidRefs) return false;
+    if (!filter.showCids && l.target.startsWith('CID:')) return false;
+    return true;
+  }).length;
+  statsText.textContent = `${vn.toLocaleString()} nodes · ${vl.toLocaleString()} edges`;
+}
+
+// ── ECharts init ───────────────────────────────────────────────────────────────
+function initChart() {
+  myChart = echarts.init(document.getElementById('chart-container'), null, { renderer: 'canvas' });
+
+  myChart.setOption({
+    backgroundColor: '#f8fafc',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255,255,255,0.97)',
+      borderColor: '#dde3ea',
+      borderWidth: 1,
+      padding: [10, 14],
+      textStyle: { color: '#1a1a1a', fontSize: 12 },
+      extraCssText: 'box-shadow:0 4px 16px rgba(0,0,0,0.1);',
+      formatter(params) {
+        if (params.dataType === 'node') {
+          const d = params.data;
+          if (d._type === 'TID') {
+            const t = tidMap.get(d._tid_id) ?? {};
+            const edges = adjacency.get(d.id) ?? [];
+            const ti = edges.filter(e => e.target_type === 'TID').length;
+            const ci = edges.filter(e => e.target_type === 'CID').length;
+            return `<b style="color:#1a3a5c">TID ${esc(d._tid_id)}</b><br>` +
+                   `${esc(t.tid_name ?? '')}<br>` +
+                   `<span style="color:#889;font-size:11px">` +
+                   `${ti} TID include${ti!==1?'s':''} · ${ci} CID ref${ci!==1?'s':''}</span>`;
+          } else {
+            const c = cidMap.get(d._cid_num) ?? {};
+            return `<b style="color:#2d7a4f">CID ${esc(d._cid_num)}</b><br>` +
+                   `${esc(c.cid_name ?? '')}<br>` +
+                   `<span style="color:#889;font-size:11px">${esc(c.cid_type ?? '')}</span>`;
+          }
+        }
+        if (params.dataType === 'edge') {
+          return `<span style="color:#889">${esc(params.data.value)}</span>`;
+        }
+        return '';
+      }
+    },
+    legend: [{
+      data: ['Template', 'Root Template', 'Context Group'],
+      textStyle: { color: '#556', fontSize: 12 },
+      right: 12,
+      top: 8,
+      itemWidth: 10,
+      itemHeight: 10,
+    }],
+    series: [{
+      type: 'graph',
+      layout: 'force',
+      animation: true,
+      animationDuration: 1400,
+      animationEasingUpdate: 'quinticInOut',
+      data: buildVisibleNodes().nodes,
+      links: buildVisibleLinks(new Set()),
+      categories: [
+        { name: 'Template',      itemStyle: { color: '#1a3a5c' } },
+        { name: 'Root Template', itemStyle: { color: '#4a8abf' } },
+        { name: 'Context Group', itemStyle: { color: '#2d7a4f' } },
+      ],
+      roam: true,
+      draggable: true,
+      selectedMode: 'single',
+      select: {
+        label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#1a1a1a' },
+        itemStyle: {
+          borderColor: '#e8a020',
+          borderWidth: 3,
+          shadowBlur: 18,
+          shadowColor: 'rgba(232,160,32,0.45)',
+        },
+      },
+      scaleLimit: { min: 0.08, max: 6 },
+      force: {
+        repulsion: [80, 240],
+        edgeLength: [20, 160],
+        gravity: 0.08,
+        friction: 0.65,
+        layoutAnimation: true,
+      },
+      label: {
+        show: false,
+        position: 'right',
+        color: '#445',
+        fontSize: 10,
+        formatter: '{b}',
+      },
+      lineStyle: { width: 1, opacity: 0.22, curveness: 0.15 },
+      emphasis: {
+        focus: 'adjacency',
+        scale: true,
+        scaleSize: 5,
+        label: { show: true, fontSize: 11, color: '#1a1a1a' },
+        lineStyle: { width: 2.5, opacity: 0.8 },
+        itemStyle: { shadowBlur: 14, shadowColor: 'rgba(26,58,92,0.3)' },
+      },
+      blur: {
+        itemStyle: { opacity: 0.05 },
+        lineStyle: { opacity: 0.03 },
+        label: { show: false },
+      },
+      edgeSymbol: ['none', 'arrow'],
+      edgeSymbolSize: [0, 5],
+    }],
   });
+
+  myChart.on('click', params => {
+    if (params.dataType === 'node') showDetailPanel(params.data);
+  });
+
+  myChart.getZr().on('mousedown', () => graphHint.classList.add('hidden'));
+  window.addEventListener('resize', () => myChart.resize());
 }
 
-// ── Node click handler ────────────────────────────────────────────────────────
-function onNodeClick(evt) {
-  const node = evt.target;
-  const type = node.data('type');
-  if (type === 'TID') {
-    focusOnTID(node.data('tid_id'));
-  } else if (type === 'CID') {
-    showInfoPanel('CID', node.data('cid_number'));
-  }
+// ── Visible data builders ──────────────────────────────────────────────────────
+function buildVisibleNodes() {
+  const q = searchQuery.toLowerCase().trim();
+  nodeIdxMap.clear();
+  const matched = new Set();
+  const nodes = allNodes
+    .filter(n => n._type === 'TID' || filter.showCids)
+    .map((n, i) => {
+      nodeIdxMap.set(n.id, i);
+      if (!q || n._srch.includes(q)) { matched.add(n.id); return n; }
+      return { ...n, itemStyle: { color: '#e2e8f0', borderColor: 'transparent' }, label: { show: false } };
+    });
+  return { nodes, matched };
 }
 
-// ── Info panel ────────────────────────────────────────────────────────────────
-function showInfoPanel(type, id) {
-  infoPanel.classList.remove('hidden');
-  emptyState.style.display = 'none';
+function buildVisibleLinks(matched) {
+  const searching = matched.size > 0;
+  return allLinks
+    .filter(l => {
+      if (l._rel === 'includes'   && !filter.showTidTid)  return false;
+      if (l._rel === 'references' && !filter.showCidRefs) return false;
+      if (!filter.showCids && l.target.startsWith('CID:')) return false;
+      return true;
+    })
+    .map(l => {
+      if (!searching || matched.has(l.source) || matched.has(l.target)) return l;
+      return { ...l, lineStyle: { color: '#dde3ea', opacity: 0.08, width: 0.5 } };
+    });
+}
 
-  if (type === 'TID') {
-    const t = tidMap.get(id) ?? { tid_name: id, tid_type: '', root: '', num_rows: 0 };
-    const edges = adjacency.get('TID:' + id) ?? [];
-    const tidInc = edges.filter(e => e.target_type === 'TID').length;
-    const cidRef = edges.filter(e => e.target_type === 'CID').length;
+function rerender() {
+  if (!myChart) return;
+  const { nodes, matched } = buildVisibleNodes();
+  myChart.setOption({ series: [{ data: nodes, links: buildVisibleLinks(matched) }] }, false);
+  updateStats();
+}
 
-    infoTypeBadge.textContent = 'TID';
-    infoTypeBadge.className = 'info-type-badge tid';
-    infoLabel.textContent = `${id} — ${t.tid_name}`;
-    infoLink.href = TID_URL(id);
+// ── Detail panel ───────────────────────────────────────────────────────────────
+function showDetailPanel(nodeData) {
+  detailPanel.classList.remove('hidden');
 
-    const rows = [
-      ['Type', t.tid_type || '—'],
-      ['Root template', t.root === 'yes' ? 'Yes' : t.root === 'no' ? 'No' : '—'],
-      ['Rows', String(t.num_rows)],
-      ['TID includes', String(tidInc)],
-      ['CID references', String(cidRef)],
-    ];
-    infoDetails.innerHTML = rows.map(([dt, dd]) =>
-      `<dt>${esc(dt)}</dt><dd>${esc(dd)}</dd>`
-    ).join('');
+  if (nodeData._type === 'TID') {
+    const id = nodeData._tid_id;
+    const t  = tidMap.get(id) ?? { tid_name: id, tid_type: '', root: '', num_rows: 0 };
+    const edges      = adjacency.get('TID:' + id) ?? [];
+    const tidIncludes = edges.filter(e => e.target_type === 'TID');
+    const cidRefs     = edges.filter(e => e.target_type === 'CID');
+
+    const typeTag = t.tid_type  ? `<span class="meta-tag type-tid">${esc(t.tid_type)}</span>` : '';
+    const rootTag = t.root==='yes' ? `<span class="meta-tag root-tag">root</span>` : '';
+    const rowsTag = `<span class="meta-tag rows-tag">${t.num_rows} rows</span>`;
+
+    const tidChips = tidIncludes.map(e => {
+      const nm = tidMap.get(e.target_id);
+      return `<span class="chip tid" data-focus="TID:${esc(e.target_id)}" title="${esc(nm ? nm.tid_name : '')}">TID ${esc(e.target_id)}</span>`;
+    }).join('');
+
+    const cidChips = cidRefs.map(e => {
+      const c = cidMap.get(e.target_id);
+      return `<span class="chip cid" data-focus="CID:${esc(e.target_id)}" title="${esc(c ? c.cid_name : '')}">CID ${esc(e.target_id)}</span>`;
+    }).join('');
+
+    panelContent.innerHTML = `
+      <div class="panel-title">TID ${esc(id)}</div>
+      <div class="panel-subtitle">${esc(t.tid_name)}</div>
+      <div class="meta-row">${typeTag}${rootTag}${rowsTag}</div>
+      ${tidIncludes.length ? `<div class="panel-section">TID Includes (${tidIncludes.length})</div><div class="chip-list">${tidChips}</div>` : ''}
+      ${cidRefs.length ? `<div class="panel-section">CID References (${cidRefs.length})</div><div class="chip-list">${cidChips}</div>` : ''}
+      <a class="dicom-btn tid-btn" href="${esc(TID_URL(id))}" target="_blank" rel="noopener">View in DICOM Standard ↗</a>
+    `;
   } else {
-    const c = cidMap.get(id) ?? { cid_name: id, cid_type: '' };
-    infoTypeBadge.textContent = 'CID';
-    infoTypeBadge.className = 'info-type-badge cid';
-    infoLabel.textContent = `${id} — ${c.cid_name}`;
-    infoLink.href = CID_URL(id);
-    infoDetails.innerHTML = `<dt>Type</dt><dd>${esc(c.cid_type || '—')}</dd>`;
+    const num = nodeData._cid_num;
+    const c   = cidMap.get(num) ?? { cid_name: num, cid_type: '' };
+    const typeTag = c.cid_type ? `<span class="meta-tag type-cid">${esc(c.cid_type)}</span>` : '';
+    panelContent.innerHTML = `
+      <div class="panel-title cid">CID ${esc(num)}</div>
+      <div class="panel-subtitle">${esc(c.cid_name)}</div>
+      <div class="meta-row">${typeTag}</div>
+      <a class="dicom-btn cid-btn" href="${esc(CID_URL(num))}" target="_blank" rel="noopener">View in DICOM Standard ↗</a>
+    `;
   }
 
-  setTimeout(() => cy && cy.resize(), 100);
-}
-
-// ── Visibility toggles ────────────────────────────────────────────────────────
-function applyVisibilityToggles() {
-  if (!cy) return;
-  const showC = showCids.checked;
-  const showT = showTidEdges.checked;
-  const showR = showCidRefs.checked;
-
-  cy.nodes('[type = "CID"]').style('display', showC ? 'element' : 'none');
-  cy.edges().forEach(e => {
-    const rel = e.data('relationship');
-    const targetIsCid = e.target().data('type') === 'CID';
-    if (targetIsCid && !showC)     { e.style('display', 'none'); return; }
-    if (rel === 'includes' && !showT) { e.style('display', 'none'); return; }
-    if (rel === 'references' && !showR) { e.style('display', 'none'); return; }
-    e.style('display', 'element');
+  panelContent.querySelectorAll('.chip[data-focus]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const nodeId = chip.dataset.focus;
+      const idx = nodeIdxMap.get(nodeId);
+      if (idx != null) {
+        myChart.dispatchAction({ type: 'select',    seriesIndex: 0, dataIndex: idx });
+        myChart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: idx });
+      }
+      const nd = allNodes.find(n => n.id === nodeId);
+      if (nd) showDetailPanel(nd);
+    });
   });
 }
 
-// ── HTML escape ───────────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+// ── Events ─────────────────────────────────────────────────────────────────────
+closePanel.addEventListener('click', () => detailPanel.classList.add('hidden'));
 
-// ── Main init ─────────────────────────────────────────────────────────────────
+function toggleBtn(btn, field, cls) {
+  filter[field] = !filter[field];
+  btn.className = 'toggle-btn' + (filter[field] ? ` ${cls}` : '');
+  rerender();
+}
+btnTidEdges.addEventListener('click', () => toggleBtn(btnTidEdges, 'showTidTid',  'active-tid'));
+btnCidRefs .addEventListener('click', () => toggleBtn(btnCidRefs,  'showCidRefs', 'active-cid'));
+btnCidNodes.addEventListener('click', () => toggleBtn(btnCidNodes, 'showCids',    'active-cid'));
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => { searchQuery = searchInput.value; rerender(); }, 250);
+});
+
+// ── Main init ──────────────────────────────────────────────────────────────────
 async function init() {
   try {
     await loadMetadata();
-    setStatus('Initializing DuckDB…');
+    setStatus('Loading data…', 'loading');
 
     const db = await initDB();
-    setStatus('Loading template data…');
+    loadingText.textContent = 'Loading parquet files…';
 
     await Promise.all([
       registerParquet(db, 'templates'),
@@ -630,34 +768,26 @@ async function init() {
     ]);
 
     const conn = await db.connect();
-    await conn.query(`CREATE VIEW templates AS SELECT * FROM read_parquet('templates.parquet')`);
-    await conn.query(`CREATE VIEW relationships AS SELECT * FROM read_parquet('relationships.parquet')`);
+    await conn.query(`CREATE VIEW templates      AS SELECT * FROM read_parquet('templates.parquet')`);
+    await conn.query(`CREATE VIEW relationships  AS SELECT * FROM read_parquet('relationships.parquet')`);
     await conn.query(`CREATE VIEW context_groups AS SELECT * FROM read_parquet('context_groups.parquet')`);
 
+    loadingText.textContent = 'Building graph…';
     await loadAllData(conn);
+    buildGraphData();
+    updateStats();
 
-    countBadge.textContent = `${allTids.length} templates`;
-    initCytoscape();
-    renderTidList();
+    loadingText.textContent = 'Rendering…';
+    initChart();
 
-    setStatus(`Ready — ${allTids.length} templates loaded`);
+    loadingOverlay.classList.add('hidden');
+    setStatus(`${tidMap.size} templates · ${allNodes.filter(n=>n._type==='CID').length} context groups`);
   } catch (e) {
-    setStatus('Error initializing: ' + e.message, true);
+    loadingText.textContent = 'Error: ' + e.message;
+    setStatus('Load failed', 'error');
     console.error(e);
   }
 }
-
-// ── Events ────────────────────────────────────────────────────────────────────
-tidSearch.addEventListener('input', renderTidList);
-filterRoot.addEventListener('change', renderTidList);
-showCids.addEventListener('change', applyVisibilityToggles);
-showTidEdges.addEventListener('change', applyVisibilityToggles);
-showCidRefs.addEventListener('change', applyVisibilityToggles);
-closeInfoBtn.addEventListener('click', () => {
-  infoPanel.classList.add('hidden');
-  if (currentTidId === null) emptyState.style.display = '';
-  setTimeout(() => cy && cy.resize(), 100);
-});
 
 init();
 </script>
