@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DICOM Coded Terminology</title>
+  <link rel="icon" href="data:,">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; font-size: 14px;
@@ -111,6 +112,13 @@
   </div>
 </main>
 
+<script type="importmap">
+{
+  "imports": {
+    "apache-arrow": "https://esm.sh/apache-arrow@18"
+  }
+}
+</script>
 <script type="module">
 import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/dist/duckdb-browser.mjs';
 
