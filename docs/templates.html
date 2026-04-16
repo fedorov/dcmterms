@@ -132,6 +132,12 @@
       color: #2d7a4f;
       background: #e6f4ed;
     }
+    .toggle-btn.active-pin {
+      border-color: #e8a020;
+      color: #a06010;
+      background: #fff8e8;
+    }
+    .toggle-btn:disabled { opacity: 0.4; cursor: default; }
     #statsText { margin-left: auto; font-size: 12px; color: #889; }
 
     /* ── Main ── */
@@ -304,6 +310,37 @@
     }
     .tid-item-link:hover { color: #1a3a5c; background: #e8f0fe; }
     .tid-item.cid-type .tid-item-link:hover { color: #2d7a4f; background: #e6f4ed; }
+    .pin-btn {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #d0d4da;
+      font-size: 11px;
+      padding: 1px 3px;
+      border-radius: 3px;
+      line-height: 1.4;
+      transition: color 0.1s, background 0.1s;
+    }
+    .pin-btn:hover { color: #e8a020; background: #fff8e8; }
+    .pin-btn.pinned { color: #e8a020; }
+    .detail-pin-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 7px 14px;
+      margin-top: 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid #d0d8e0;
+      background: white;
+      color: #667;
+      transition: all 0.15s;
+    }
+    .detail-pin-btn:hover { border-color: #e8a020; color: #a06010; background: #fff8e8; }
+    .detail-pin-btn.pinned { border-color: #e8a020; color: #a06010; background: #fff8e8; }
 
     /* ── Graph hint ── */
     #graph-hint {
@@ -393,6 +430,7 @@
   <button class="toggle-btn active-tid" id="btnTidEdges">TID→TID includes</button>
   <button class="toggle-btn active-cid" id="btnCidRefs">TID→CID references</button>
   <button class="toggle-btn active-cid" id="btnCidNodes">CID nodes</button>
+  <button class="toggle-btn" id="btnShowPinned" disabled>📌 Pinned (0)</button>
   <span id="statsText"></span>
 </div>
 
@@ -455,6 +493,8 @@ const nodeIdxMap = new Map();  // node id -> data index in last render
 const filter = { showTidTid: true, showCidRefs: true, showCids: true };
 let searchQuery = '';
 let debounceTimer = null;
+const pinnedNodes = new Set();
+let showPinnedNeighborhood = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const DICOM_BASE = 'https://dicom.nema.org/medical/dicom/current/output/chtml/part16/';
@@ -795,15 +835,28 @@ function initChart() {
 }
 
 // ── Visible data builders ──────────────────────────────────────────────────────
+function getPinnedNeighborhood() {
+  const result = new Set(pinnedNodes);
+  for (const lk of allLinks) {
+    if (pinnedNodes.has(lk.source)) result.add(lk.target);
+    if (pinnedNodes.has(lk.target)) result.add(lk.source);
+  }
+  return result;
+}
+
 function buildVisibleNodes() {
   const q = searchQuery.toLowerCase().trim();
   nodeIdxMap.clear();
   const matched = new Set();
+  const usePin = showPinnedNeighborhood && pinnedNodes.size > 0;
+  const neighborhood = usePin ? getPinnedNeighborhood() : null;
+
   const nodes = allNodes
     .filter(n => n._type === 'TID' || filter.showCids)
     .map((n, i) => {
       nodeIdxMap.set(n.id, i);
-      if (!q || n._srch.includes(q)) { matched.add(n.id); return n; }
+      const isMatch = usePin ? neighborhood.has(n.id) : (!q || n._srch.includes(q));
+      if (isMatch) { matched.add(n.id); return n; }
       return { ...n, itemStyle: { color: '#e2e8f0', borderColor: 'transparent' }, label: { show: false } };
     });
   return { nodes, matched };
@@ -854,6 +907,7 @@ function renderTidList() {
       `<div class="tid-item${t.root === 'yes' ? ' root' : ''}" data-node="TID:${esc(id)}">` +
       `<div class="tid-item-info"><div class="tid-item-id">TID ${esc(id)}</div>` +
       `<div class="tid-item-name" title="${esc(t.tid_name)}">${esc(t.tid_name)}</div></div>` +
+      `<button class="pin-btn" data-pin-node="TID:${esc(id)}" title="Pin">📌</button>` +
       `<a class="tid-item-link" href="${esc(TID_URL(id))}" target="_blank" rel="noopener" title="Open in DICOM Standard">↗</a>` +
       `</div>`
     ).join('');
@@ -863,6 +917,7 @@ function renderTidList() {
       `<div class="tid-item cid-type" data-node="CID:${esc(num)}">` +
       `<div class="tid-item-info"><div class="tid-item-id">CID ${esc(num)}</div>` +
       `<div class="tid-item-name" title="${esc(c.cid_name)}">${esc(c.cid_name)}</div></div>` +
+      `<button class="pin-btn" data-pin-node="CID:${esc(num)}" title="Pin">📌</button>` +
       `<a class="tid-item-link" href="${esc(CID_URL(num))}" target="_blank" rel="noopener" title="Open in DICOM Standard">↗</a>` +
       `</div>`
     ).join('');
@@ -872,6 +927,7 @@ function renderTidList() {
   tidList.querySelectorAll('.tid-item').forEach(item => {
     item.addEventListener('click', e => {
       if (e.target.classList.contains('tid-item-link')) return;
+      if (e.target.classList.contains('pin-btn')) { togglePin(item.dataset.node); return; }
       const nodeId = item.dataset.node;
       setActiveSidebarItem(nodeId);
       const nd = allNodes.find(n => n.id === nodeId);
@@ -905,6 +961,36 @@ function filterSidebar() {
   });
 }
 
+// ── Pin logic ─────────────────────────────────────────────────────────────────
+function updatePinBadge() {
+  const btn = document.getElementById('btnShowPinned');
+  btn.textContent = `📌 Pinned (${pinnedNodes.size})`;
+  btn.disabled = pinnedNodes.size === 0;
+  if (pinnedNodes.size === 0 && showPinnedNeighborhood) {
+    showPinnedNeighborhood = false;
+    btn.className = 'toggle-btn';
+  }
+}
+
+function togglePin(nodeId) {
+  if (pinnedNodes.has(nodeId)) pinnedNodes.delete(nodeId);
+  else pinnedNodes.add(nodeId);
+  const isPinned = pinnedNodes.has(nodeId);
+  updatePinBadge();
+  // Sync sidebar pin buttons for this node
+  document.querySelectorAll(`.pin-btn[data-pin-node="${nodeId}"]`).forEach(btn => {
+    btn.classList.toggle('pinned', isPinned);
+    btn.title = isPinned ? 'Unpin' : 'Pin';
+  });
+  // Sync detail panel button if it's showing this node
+  const dp = document.getElementById('detail-pin-btn');
+  if (dp && dp.dataset.pinNode === nodeId) {
+    dp.classList.toggle('pinned', isPinned);
+    dp.textContent = isPinned ? '📌 Pinned — click to unpin' : '📌 Pin this node';
+  }
+  if (showPinnedNeighborhood) rerender();
+}
+
 // ── Detail panel ───────────────────────────────────────────────────────────────
 function showDetailPanel(nodeData) {
   detailPanel.classList.remove('hidden');
@@ -930,6 +1016,7 @@ function showDetailPanel(nodeData) {
       return `<span class="chip cid" data-focus="CID:${esc(e.target_id)}" title="${esc(c ? c.cid_name : '')}">CID ${esc(e.target_id)}</span>`;
     }).join('');
 
+    const pinned1 = pinnedNodes.has('TID:' + id);
     panelContent.innerHTML = `
       <div class="panel-title">TID ${esc(id)}</div>
       <div class="panel-subtitle">${esc(t.tid_name)}</div>
@@ -937,16 +1024,19 @@ function showDetailPanel(nodeData) {
       ${tidIncludes.length ? `<div class="panel-section">TID Includes (${tidIncludes.length})</div><div class="chip-list">${tidChips}</div>` : ''}
       ${cidRefs.length ? `<div class="panel-section">CID References (${cidRefs.length})</div><div class="chip-list">${cidChips}</div>` : ''}
       <a class="dicom-btn tid-btn" href="${esc(TID_URL(id))}" target="_blank" rel="noopener">View in DICOM Standard ↗</a>
+      <button class="detail-pin-btn${pinned1 ? ' pinned' : ''}" id="detail-pin-btn" data-pin-node="TID:${esc(id)}">${pinned1 ? '📌 Pinned — click to unpin' : '📌 Pin this node'}</button>
     `;
   } else {
     const num = nodeData._cid_num;
     const c   = cidMap.get(num) ?? { cid_name: num, cid_type: '' };
     const typeTag = c.cid_type ? `<span class="meta-tag type-cid">${esc(c.cid_type)}</span>` : '';
+    const pinned2 = pinnedNodes.has('CID:' + num);
     panelContent.innerHTML = `
       <div class="panel-title cid">CID ${esc(num)}</div>
       <div class="panel-subtitle">${esc(c.cid_name)}</div>
       <div class="meta-row">${typeTag}</div>
       <a class="dicom-btn cid-btn" href="${esc(CID_URL(num))}" target="_blank" rel="noopener">View in DICOM Standard ↗</a>
+      <button class="detail-pin-btn${pinned2 ? ' pinned' : ''}" id="detail-pin-btn" data-pin-node="CID:${esc(num)}">${pinned2 ? '📌 Pinned — click to unpin' : '📌 Pin this node'}</button>
     `;
   }
 
@@ -962,6 +1052,9 @@ function showDetailPanel(nodeData) {
       if (nd) showDetailPanel(nd);
     });
   });
+
+  document.getElementById('detail-pin-btn')
+    ?.addEventListener('click', () => togglePin(document.getElementById('detail-pin-btn').dataset.pinNode));
 }
 
 // ── Events ─────────────────────────────────────────────────────────────────────
@@ -975,6 +1068,14 @@ function toggleBtn(btn, field, cls) {
 btnTidEdges.addEventListener('click', () => toggleBtn(btnTidEdges, 'showTidTid',  'active-tid'));
 btnCidRefs .addEventListener('click', () => toggleBtn(btnCidRefs,  'showCidRefs', 'active-cid'));
 btnCidNodes.addEventListener('click', () => toggleBtn(btnCidNodes, 'showCids',    'active-cid'));
+
+document.getElementById('btnShowPinned').addEventListener('click', () => {
+  if (pinnedNodes.size === 0) return;
+  showPinnedNeighborhood = !showPinnedNeighborhood;
+  document.getElementById('btnShowPinned').className =
+    'toggle-btn' + (showPinnedNeighborhood ? ' active-pin' : '');
+  rerender();
+});
 
 searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
