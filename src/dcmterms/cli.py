@@ -140,9 +140,14 @@ def _run_extract(args: argparse.Namespace) -> None:
 
     # If source looks like a URL, download first
     if source.startswith("http://") or source.startswith("https://"):
+        from .download import download_tid_chtml
         source_dir = download_chtml(
             base_url=source,
             cache_dir=args.cache_dir,
+        )
+        download_tid_chtml(
+            base_url=source,
+            cache_dir=source_dir,
         )
     else:
         source_dir = Path(source)
