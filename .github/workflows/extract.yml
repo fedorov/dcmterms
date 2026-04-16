@@ -1,0 +1,109 @@
+name: Extract DICOM Terminology
+
+on:
+  workflow_dispatch:
+    inputs:
+      edition:
+        description: 'DICOM edition (e.g. 2026b)'
+        required: true
+        default: '2026b'
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required for creating/updating releases
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      # Default source: download live from DICOM website (~15 min).
+      # Overridden below if GCS_SA_KEY is available.
+      - name: Set default extract source (DICOM website)
+        run: |
+          echo "EXTRACT_SOURCE=https://dicom.nema.org/medical/dicom/current/output/chtml/part16/" >> "$GITHUB_ENV"
+
+      - name: Authenticate with GCS
+        if: ${{ secrets.GCS_SA_KEY != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCS_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        if: ${{ secrets.GCS_SA_KEY != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Download DICOM files from GCS cache
+        if: ${{ secrets.GCS_SA_KEY != '' }}
+        run: |
+          mkdir -p ./cache/part16
+          gsutil -m cp -r "gs://af-dev-storage/dcmterm/${{ inputs.edition }}/part16/" ./cache/part16/
+          echo "EXTRACT_SOURCE=./cache/part16" >> "$GITHUB_ENV"
+
+      - name: Extract DICOM terminology
+        run: python -m dcmterms extract --source "$EXTRACT_SOURCE" --output ./output
+
+      - name: Generate release notes
+        run: |
+          python3 << 'PYEOF'
+          import json
+
+          with open('./output/extraction_metadata.json') as f:
+              meta = json.load(f)
+
+          edition = meta.get('dicom_edition', 'unknown')
+          lines = [
+              f"## DICOM Terminology Tables — {edition}",
+              "",
+              f"**Extracted:** {meta.get('extraction_date', 'unknown')}  ",
+              f"**dcmterms version:** {meta.get('dcmterms_version', 'unknown')}  ",
+              "",
+              "### Counts",
+              f"- Context Groups (CIDs): {meta.get('total_cid_files_parsed', 0)}",
+              f"- Coded Entries: {meta.get('total_coded_entries', 0)}",
+              f"- Unique Codes: {meta.get('unique_codes', 0)}",
+              f"- SR Templates (TIDs): {meta.get('total_tid_files_parsed', 0)}",
+              f"- Template Rows: {meta.get('total_template_rows', 0)}",
+              f"- Relationships: {meta.get('total_relationships', 0)}",
+              "",
+              "### Coding Schemes",
+          ]
+          for scheme, count in sorted(meta.get('scheme_counts', {}).items(), key=lambda x: -x[1]):
+              lines.append(f"- {scheme}: {count}")
+
+          with open('release_notes.md', 'w') as f:
+              f.write('\n'.join(lines) + '\n')
+          PYEOF
+
+      - name: Delete existing release (if any)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "${{ inputs.edition }}.latest" --yes --cleanup-tag 2>/dev/null || true
+
+      - name: Create release with artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.edition }}.latest" \
+            --title "DICOM Terminology Tables — ${{ inputs.edition }}" \
+            --notes-file release_notes.md \
+            output/coded_entries.csv \
+            output/coded_entries.parquet \
+            output/codes_unique.csv \
+            output/codes_unique.parquet \
+            output/context_groups.csv \
+            output/context_groups.parquet \
+            output/templates.csv \
+            output/templates.parquet \
+            output/relationships.csv \
+            output/relationships.parquet \
+            output/extraction_metadata.json
