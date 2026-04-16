@@ -101,3 +101,19 @@ jobs:
             --title "DICOM Terminology Tables — ${{ inputs.edition }}" \
             --notes-file release_notes.md \
             "${files[@]}"
+
+      - name: Update site data files
+        run: |
+          mkdir -p docs/data
+          cp output/codes_unique.parquet docs/data/
+          cp output/coded_entries.parquet docs/data/
+          cp output/context_groups.parquet docs/data/
+          cp output/extraction_metadata.json docs/data/
+
+      - name: Commit and push updated site data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/data/
+          git diff --staged --quiet || git commit -m "data: update to DICOM ${{ inputs.edition }} [skip ci]"
+          git push
