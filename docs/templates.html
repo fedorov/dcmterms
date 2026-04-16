@@ -253,15 +253,30 @@
     }
     #sid-count { font-weight: 400; color: #aab; margin-left: 4px; }
     #tid-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .sid-section-hdr {
+      padding: 8px 12px 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #aab;
+      border-top: 1px solid #e8edf2;
+      margin-top: 2px;
+    }
     .tid-item {
-      padding: 5px 12px 5px 14px;
+      padding: 5px 10px 5px 14px;
       cursor: pointer;
       border-left: 3px solid transparent;
       transition: background 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     .tid-item:hover { background: #f4f7fb; }
     .tid-item.active { background: #e8f0fe; border-left-color: #1a3a5c; }
+    .tid-item.cid-type.active { background: #e6f4ed; border-left-color: #2d7a4f; }
     .tid-item.hidden { display: none; }
+    .tid-item-info { flex: 1; min-width: 0; }
     .tid-item-id {
       font-size: 11px;
       font-weight: 700;
@@ -269,6 +284,7 @@
       color: #1a3a5c;
     }
     .tid-item.root .tid-item-id { color: #4a8abf; }
+    .tid-item.cid-type .tid-item-id { color: #2d7a4f; }
     .tid-item-name {
       font-size: 11.5px;
       color: #445;
@@ -276,6 +292,18 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .tid-item-link {
+      flex-shrink: 0;
+      color: #bbc;
+      font-size: 12px;
+      text-decoration: none;
+      padding: 1px 4px;
+      border-radius: 3px;
+      line-height: 1.4;
+      transition: color 0.1s, background 0.1s;
+    }
+    .tid-item-link:hover { color: #1a3a5c; background: #e8f0fe; }
+    .tid-item.cid-type .tid-item-link:hover { color: #2d7a4f; background: #e6f4ed; }
 
     /* ── Graph hint ── */
     #graph-hint {
@@ -370,7 +398,7 @@
 
 <div id="main-content">
   <div id="tid-sidebar">
-    <div id="sid-header">Templates <span id="sid-count"></span></div>
+    <div id="sid-header">Navigator <span id="sid-count"></span></div>
     <div id="tid-list"></div>
   </div>
   <div id="chart-container"></div>
@@ -429,8 +457,82 @@ let searchQuery = '';
 let debounceTimer = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const TID_URL = id  => `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_TID_${id}.html`;
-const CID_URL = num => `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_${num}.html`;
+const DICOM_BASE = 'https://dicom.nema.org/medical/dicom/current/output/chtml/part16/';
+// TIDs whose URL doesn't follow the default sect_TID_XXX.html pattern (from PS3.16 TOC)
+const TID_PATHS = {
+  '300':'chapter_A.html#sect_TID_300','301':'chapter_A.html#sect_TID_301',
+  '310':'chapter_A.html#sect_TID_310','311':'chapter_A.html#sect_TID_311',
+  '312':'chapter_A.html#sect_TID_312','314':'chapter_A.html#sect_TID_314',
+  '315':'chapter_A.html#sect_TID_315','320':'chapter_A.html#sect_TID_320',
+  '321':'chapter_A.html#sect_TID_321','350':'chapter_A.html#sect_TID_350',
+  '351':'chapter_A.html#sect_TID_351','400':'chapter_A.html#sect_TID_400',
+  '1000':'chapter_A.html#sect_TID_1000','1001':'chapter_A.html#sect_TID_1001',
+  '1002':'chapter_A.html#sect_TID_1002','1003':'chapter_A.html#sect_TID_1003',
+  '1004':'chapter_A.html#sect_TID_1004','1005':'chapter_A.html#sect_TID_1005',
+  '1006':'chapter_A.html#sect_TID_1006','1007':'chapter_A.html#sect_TID_1007',
+  '1008':'chapter_A.html#sect_TID_1008','1009':'chapter_A.html#sect_TID_1009',
+  '1010':'chapter_A.html#sect_TID_1010','1015':'chapter_A.html#sect_TID_1015',
+  '1020':'chapter_A.html#sect_TID_1020','1021':'chapter_A.html#sect_TID_1021',
+  '1025':'chapter_A.html#sect_TID_1025','1200':'chapter_A.html#sect_TID_1200',
+  '1201':'chapter_A.html#sect_TID_1201','1202':'chapter_A.html#sect_TID_1202',
+  '1204':'chapter_A.html#sect_TID_1204','1210':'chapter_A.html#sect_TID_1210',
+  '1211':'chapter_A.html#sect_TID_1211','1350':'chapter_A.html#sect_TID_1350',
+  '1400':'chapter_A.html#sect_TID_1400','1401':'chapter_A.html#sect_TID_1401',
+  '1402':'chapter_A.html#sect_TID_1402','1404':'chapter_A.html#sect_TID_1404',
+  '1406':'chapter_A.html#sect_TID_1406','1410':'chapter_A.html#sect_TID_1410',
+  '1411':'chapter_A.html#sect_TID_1411','1419':'chapter_A.html#sect_TID_1419',
+  '1420':'chapter_A.html#sect_TID_1420','1500':'chapter_A.html#sect_TID_1500',
+  '1501':'chapter_A.html#sect_TID_1501','1502':'chapter_A.html#sect_TID_1502',
+  '1600':'chapter_A.html#sect_TID_1600','1601':'chapter_A.html#sect_TID_1601',
+  '1602':'chapter_A.html#sect_TID_1602','1603':'chapter_A.html#sect_TID_1603',
+  '1604':'chapter_A.html#sect_TID_1604','1605':'chapter_A.html#sect_TID_1605',
+  '1606':'chapter_A.html#sect_TID_1606','1607':'chapter_A.html#sect_TID_1607',
+  '1608':'chapter_A.html#sect_TID_1608','1700':'chapter_A.html#sect_TID_1700',
+  '1701':'chapter_A.html#sect_TID_1701',
+  '2000':'sect_DiagnosticImagingReportTemplates.html#sect_TID_2000',
+  '2020':'sect_OptometryAndOphthalmologyTemplates.html#sect_TID_2020',
+  '3001':'sect_ProcedureLogIODTemplates.html#sect_TID_3001',
+  '3202':'sect_QuantitativeVentricularAnalysisReportSRIODTemplates.html#sect_TID_3202',
+  '3213':'sect_QuantitativeArterialAnalysisReportSRIODTemplates.html#sect_TID_3213',
+  '3250':'sect_IVUSReportTemplates.html#sect_TID_3250',
+  '3300':'sect_StressTestingReportTemplates.html#sect_TID_3300',
+  '3500':'sect_HemodynamicsReportTemplates.html#sect_TID_3500',
+  '3700':'sect_ECGReportTemplates.html#sect_TID_3700',
+  '3750':'sect_WaveformAnnotationTemplates.html#sect_TID_3750',
+  '3800':'sect_CathLabClinicalReportTemplates.html#sect_TID_3800',
+  '3900':'sect_CTMRCardiovascularAnalysisReportTemplates.html#sect_TID_3900',
+  '4000':'sect_MammographyCADSRIODTemplates.html#sect_TID_4000',
+  '4100':'sect_ChestCADSRIODTemplates.html#sect_TID_4100',
+  '4120':'sect_ColonCADSRIODTemplates.html#sect_TID_4120',
+  '4200':'sect_BreastImagingReportTemplates.html#sect_TID_4200',
+  '4300':'sect_ProstateImagingReportTemplates.html#sect_TID_4300',
+  '5000':'sect_OB-GYNReportTemplates.html#sect_TID_5000',
+  '5100':'sect_VascularUltrasoundReportTemplates.html#sect_TID_5100',
+  '5200':'sect_EchocardiographyProcedureReportTemplates.html#sect_TID_5200',
+  '5300':'sect_SimplifiedAdultEchocardiographyTemplates.html#sect_TID_5300',
+  '5320':'sect_StructuralHeartProcedureTemplates.html#sect_TID_5320',
+  '5401':'sect_UltrasoundShearWaveElastographyTemplates.html#sect_TID_5401',
+  '7000':'sect_ImplantationPlanSRDocumentTemplates.html#sect_TID_7000',
+  '8101':'sect_AcquisitionContextSRIODTemplates.html#sect_TID_8101',
+  '9000':'sect_RelevantPatientInformationTemplates.html#sect_TID_9000',
+  '10001':'sect_XRayRadiationDoseSRIODTemplates.html#sect_TID_10001',
+  '10011':'sect_CTRadiationDoseSRIODTemplates.html#sect_TID_10011',
+  '10021':'sect_RadiopharmaceuticalRadiationDoseSRIODTemplates.html#sect_TID_10021',
+  '10030':'sect_PatientRadiationDoseSRIODTemplates.html#sect_TID_10030',
+  '10040':'sect_EnhancedX-RayRadiationDoseSRIODTemplates.html#sect_TID_10040',
+  '11001':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11001',
+  '11002':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11002',
+  '11003':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11003',
+  '11004':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11004',
+  '11005':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11005',
+  '11006':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11006',
+  '11007':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11007',
+  '11008':'sect_ImagingAgentAdministrationSRIODTemplates.html#sect_TID_11008',
+  '11020':'sect_PerformedImagingAgentAdministrationSRIODTemplates.html#sect_TID_11020',
+  '12000':'sect_MiscellaneousUltrasoundReportTemplates.html#sect_TID_12000',
+};
+const TID_URL = id  => DICOM_BASE + (TID_PATHS[id] ?? `sect_TID_${id}.html`);
+const CID_URL = num => DICOM_BASE + `sect_CID_${num}.html`;
 
 function esc(s) {
   return String(s ?? '')
@@ -684,7 +786,7 @@ function initChart() {
   myChart.on('click', params => {
     if (params.dataType === 'node') {
       showDetailPanel(params.data);
-      if (params.data._type === 'TID') setActiveSidebarItem(params.data._tid_id);
+      setActiveSidebarItem(params.data.id);
     }
   });
 
@@ -739,25 +841,42 @@ function tidSortKey(id) {
 function renderTidList() {
   const tidList = document.getElementById('tid-list');
   const sidCount = document.getElementById('sid-count');
-  const sorted = [...tidMap.entries()].sort(([a, ta], [b, tb]) => {
+
+  const sortedTids = [...tidMap.entries()].sort(([a, ta], [b, tb]) => {
     if ((ta.root === 'yes') !== (tb.root === 'yes')) return ta.root === 'yes' ? -1 : 1;
     return tidSortKey(a).localeCompare(tidSortKey(b));
   });
-  sidCount.textContent = `(${sorted.length})`;
-  tidList.innerHTML = sorted.map(([id, t]) =>
-    `<div class="tid-item${t.root === 'yes' ? ' root' : ''}" data-tid="${esc(id)}">` +
-    `<div class="tid-item-id">TID ${esc(id)}</div>` +
-    `<div class="tid-item-name" title="${esc(t.tid_name)}">${esc(t.tid_name)}</div>` +
-    `</div>`
-  ).join('');
+  const sortedCids = [...cidMap.entries()].sort(([a], [b]) => Number(a) - Number(b));
+  sidCount.textContent = `(${sortedTids.length} TIDs · ${sortedCids.length} CIDs)`;
+
+  const tidHtml = `<div class="sid-section-hdr">Templates (${sortedTids.length})</div>` +
+    sortedTids.map(([id, t]) =>
+      `<div class="tid-item${t.root === 'yes' ? ' root' : ''}" data-node="TID:${esc(id)}">` +
+      `<div class="tid-item-info"><div class="tid-item-id">TID ${esc(id)}</div>` +
+      `<div class="tid-item-name" title="${esc(t.tid_name)}">${esc(t.tid_name)}</div></div>` +
+      `<a class="tid-item-link" href="${esc(TID_URL(id))}" target="_blank" rel="noopener" title="Open in DICOM Standard">↗</a>` +
+      `</div>`
+    ).join('');
+
+  const cidHtml = `<div class="sid-section-hdr">Context Groups (${sortedCids.length})</div>` +
+    sortedCids.map(([num, c]) =>
+      `<div class="tid-item cid-type" data-node="CID:${esc(num)}">` +
+      `<div class="tid-item-info"><div class="tid-item-id">CID ${esc(num)}</div>` +
+      `<div class="tid-item-name" title="${esc(c.cid_name)}">${esc(c.cid_name)}</div></div>` +
+      `<a class="tid-item-link" href="${esc(CID_URL(num))}" target="_blank" rel="noopener" title="Open in DICOM Standard">↗</a>` +
+      `</div>`
+    ).join('');
+
+  tidList.innerHTML = tidHtml + cidHtml;
 
   tidList.querySelectorAll('.tid-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const id = item.dataset.tid;
-      setActiveSidebarItem(id);
-      const nd = allNodes.find(n => n._type === 'TID' && n._tid_id === id);
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('tid-item-link')) return;
+      const nodeId = item.dataset.node;
+      setActiveSidebarItem(nodeId);
+      const nd = allNodes.find(n => n.id === nodeId);
       if (!nd) return;
-      const idx = nodeIdxMap.get('TID:' + id);
+      const idx = nodeIdxMap.get(nodeId);
       if (idx != null) {
         myChart.dispatchAction({ type: 'select',    seriesIndex: 0, dataIndex: idx });
         myChart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: idx });
@@ -767,20 +886,22 @@ function renderTidList() {
   });
 }
 
-function setActiveSidebarItem(tidId) {
+function setActiveSidebarItem(nodeId) {
   const tidList = document.getElementById('tid-list');
   tidList.querySelectorAll('.tid-item.active').forEach(el => el.classList.remove('active'));
-  const item = tidList.querySelector(`.tid-item[data-tid="${tidId}"]`);
+  const item = tidList.querySelector(`.tid-item[data-node="${nodeId}"]`);
   if (item) { item.classList.add('active'); item.scrollIntoView({ block: 'nearest' }); }
 }
 
 function filterSidebar() {
   const q = searchQuery.toLowerCase().trim();
   document.querySelectorAll('#tid-list .tid-item').forEach(item => {
-    const id = item.dataset.tid;
-    const t  = tidMap.get(id);
-    const match = !q || (`tid${id} ${t ? t.tid_name : ''}`).toLowerCase().includes(q);
-    item.classList.toggle('hidden', !match);
+    const nodeId = item.dataset.node;
+    const isCid  = nodeId.startsWith('CID:');
+    if (isCid && !filter.showCids) { item.classList.add('hidden'); return; }
+    if (!q) { item.classList.remove('hidden'); return; }
+    const nd = allNodes.find(n => n.id === nodeId);
+    item.classList.toggle('hidden', !nd || !nd._srch.includes(q));
   });
 }
 
