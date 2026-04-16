@@ -8,11 +8,11 @@ The DICOM standard uses coded terminology (SNOMED-CT, LOINC, NCIt, UCUM, DICOM-d
 
 | Milestone | Scope | Status |
 |-----------|-------|--------|
-| **M1: Context Group Extraction** | Parse all CIDs, produce tabular outputs (CSV + Parquet) | Build now |
-| **M2: SR Template Parsing** | Parse TID definitions, capture template→CID relationships | Build next |
-| **M3: Graph Visualization** | Interactive graph of CID↔CID includes + TID→CID references | After M2 |
-| **M4: GitHub Actions Auto-update** | CI workflow to re-extract on each DICOM standard release | After M1 |
-| **M5: Web Interface** | GitHub Pages site for browsing/searching extracted content | After M3 |
+| **M1: Context Group Extraction** | Parse all CIDs, produce tabular outputs (CSV + Parquet) | Done |
+| **M2: SR Template Parsing** | Parse TID definitions, capture template→CID relationships | Done |
+| **M3: Graph Visualization** | Interactive graph of CID↔CID includes + TID→CID references | Planned |
+| **M4: GitHub Actions Auto-update** | CI workflow to re-extract on each DICOM standard release | Planned |
+| **M5: Web Interface** | GitHub Pages site for browsing/searching extracted content | In progress |
 
 Architecture decisions in M1 are made with M2–M5 in mind. Specifically:
 - **Modular parsers**: `parse_cid.py` and (future) `parse_tid.py` share common XHTML parsing utilities

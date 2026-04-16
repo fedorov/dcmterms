@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DICOM Coded Terminology — dcmterms</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%231a3a5c'/%3E%3Crect x='5' y='8' width='22' height='4' rx='1' fill='white'/%3E%3Crect x='5' y='14' width='22' height='2.5' rx='1' fill='rgba(255,255,255,0.55)'/%3E%3Crect x='5' y='18.5' width='22' height='2.5' rx='1' fill='rgba(255,255,255,0.55)'/%3E%3Crect x='5' y='23' width='22' height='2.5' rx='1' fill='rgba(255,255,255,0.55)'/%3E%3C/svg%3E">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; font-size: 14px;
+           color: #1a1a1a; background: #f5f5f5; min-height: 100vh; }
+
+    header { background: #1a3a5c; color: white; padding: 14px 24px;
+             display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .back-link { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 13px;
+                 display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .back-link:hover { color: white; }
+    .header-sep { color: rgba(255,255,255,0.3); font-size: 16px; }
+    header h1 { font-size: 18px; font-weight: 600; }
+    .badge { background: rgba(255,255,255,0.15); border-radius: 4px;
+             padding: 2px 9px; font-size: 12px; white-space: nowrap; }
+
+    .controls { background: white; border-bottom: 1px solid #e0e0e0;
+                padding: 10px 24px; display: flex; gap: 10px; align-items: center; }
+    .search-wrap { position: relative; flex: 1; max-width: 520px; }
+    .search-wrap svg { position: absolute; left: 10px; top: 50%;
+                       transform: translateY(-50%); color: #888; pointer-events: none; }
+    #searchInput { width: 100%; padding: 8px 12px 8px 34px;
+                   border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    #searchInput:focus { outline: none; border-color: #1a3a5c;
+                         box-shadow: 0 0 0 3px rgba(26,58,92,0.12); }
+    #schemeSelect { padding: 8px 10px; border: 1px solid #ccc;
+                    border-radius: 6px; font-size: 14px; background: white; }
+
+    .status-bar { padding: 5px 24px; font-size: 12px; color: #666;
+                  background: #fafafa; border-bottom: 1px solid #ebebeb;
+                  min-height: 26px; }
+    .status-bar.error { color: #c0392b; background: #fef0ee; }
+
+    main { padding: 0 24px 32px; }
+
+    .results-info { padding: 10px 0 6px; font-size: 12px; color: #888; min-height: 28px; }
+
+    table { width: 100%; border-collapse: collapse; background: white;
+            border: 1px solid #dde2e7; border-radius: 6px; overflow: hidden; }
+    th { background: #f0f4f8; text-align: left; padding: 8px 12px;
+         font-weight: 600; font-size: 12px; color: #556; border-bottom: 2px solid #d0d8e0;
+         white-space: nowrap; }
+    td { padding: 7px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    tr:last-child > td { border-bottom: none; }
+    tr.data-row:hover > td { background: #f8fafc; }
+
+    .scheme-tag { display: inline-block; padding: 1px 6px; border-radius: 3px;
+                  font-size: 11px; font-weight: 700; font-family: monospace;
+                  background: #e8f0fe; color: #1a56b0; }
+    .code-val { font-family: monospace; font-size: 13px; }
+    .snomed-rt { font-family: monospace; font-size: 11px; color: #999; }
+
+    .cid-btn { display: inline-flex; align-items: center; gap: 3px;
+               padding: 2px 8px; border-radius: 10px; font-size: 11px;
+               font-weight: 600; background: #eff1f3; color: #445;
+               border: none; cursor: pointer; white-space: nowrap; }
+    .cid-btn:hover { background: #e0e3e6; }
+    .cid-btn.open { background: #1a3a5c; color: white; }
+
+    .cid-row td { padding: 6px 12px 8px 40px; background: #f8fafc;
+                  border-bottom: 1px solid #eaeef2; }
+    .cid-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .cid-chip { display: inline-block; padding: 2px 8px; border-radius: 4px;
+                font-size: 11px; background: #e8f0fe; color: #1a56b0;
+                text-decoration: none; }
+    .cid-chip:hover { background: #d0e2fc; }
+    .cid-chip .cid-num { color: #6080b0; margin-right: 4px; }
+
+    .placeholder { text-align: center; padding: 52px 24px; color: #888; }
+    .placeholder h2 { font-size: 17px; font-weight: 400; margin-bottom: 10px; color: #555; }
+    .placeholder p { font-size: 13px; line-height: 1.6; }
+    .placeholder code { background: #efefef; padding: 1px 6px; border-radius: 3px; }
+
+    .spinner { display: inline-block; width: 20px; height: 20px; margin-bottom: 10px;
+               border: 3px solid #e0e0e0; border-top-color: #1a3a5c;
+               border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    dcmterms
+  </a>
+  <span class="header-sep">/</span>
+  <h1>Coded Terminology</h1>
+  <span class="badge" id="editionBadge">Loading…</span>
+  <span class="badge" id="countBadge"></span>
+</header>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2.5">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="searchInput" type="search"
+           placeholder="Search code meaning or code value…"
+           disabled autocomplete="off" spellcheck="false">
+  </div>
+  <select id="schemeSelect" disabled>
+    <option value="ALL">All schemes</option>
+  </select>
+</div>
+
+<div class="status-bar" id="statusBar">Initializing DuckDB…</div>
+
+<main>
+  <div class="results-info" id="resultsInfo"></div>
+  <div id="tableWrap">
+    <div class="placeholder">
+      <div class="spinner"></div>
+      <div>Loading terminology data…</div>
+    </div>
+  </div>
+</main>
+
+<script type="importmap">
+{
+  "imports": {
+    "apache-arrow": "https://esm.sh/apache-arrow@18"
+  }
+}
+</script>
+<script type="module">
+import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/dist/duckdb-browser.mjs';
+
+const searchInput  = document.getElementById('searchInput');
+const schemeSelect = document.getElementById('schemeSelect');
+const statusBar    = document.getElementById('statusBar');
+const tableWrap    = document.getElementById('tableWrap');
+const resultsInfo  = document.getElementById('resultsInfo');
+const editionBadge = document.getElementById('editionBadge');
+const countBadge   = document.getElementById('countBadge');
+
+let conn = null;
+let debounceTimer = null;
+let expandedIdx = null;    // index of currently-expanded row
+let rowMeta = [];          // {scheme, codeVal, codeMeaning} per result row
+
+function setStatus(msg, isError = false) {
+  statusBar.textContent = msg;
+  statusBar.className = 'status-bar' + (isError ? ' error' : '');
+}
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escSql(s) {
+  return String(s ?? '').replace(/'/g, "''").replace(/\x00/g, '');
+}
+
+// ── Metadata ────────────────────────────────────────────────────────────────
+async function loadMetadata() {
+  try {
+    const meta = await (await fetch('./data/extraction_metadata.json')).json();
+    editionBadge.textContent = `Edition: ${meta.dicom_edition} · ${meta.extraction_date}`;
+    countBadge.textContent   = `${meta.unique_codes.toLocaleString()} unique codes`;
+
+    const schemes = Object.entries(meta.scheme_counts ?? {}).sort((a, b) => b[1] - a[1]);
+    for (const [scheme, count] of schemes) {
+      const opt = document.createElement('option');
+      opt.value = scheme;
+      opt.textContent = `${scheme} (${count.toLocaleString()})`;
+      schemeSelect.appendChild(opt);
+    }
+  } catch {
+    editionBadge.textContent = 'DICOM Terminology';
+  }
+}
+
+// ── DuckDB init ─────────────────────────────────────────────────────────────
+async function initDB() {
+  const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+  const workerUrl = URL.createObjectURL(
+    new Blob([`importScripts("${bundle.mainWorker}")`], { type: 'text/javascript' })
+  );
+  const worker = new Worker(workerUrl);
+  const db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(), worker);
+  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+  URL.revokeObjectURL(workerUrl);
+  return db;
+}
+
+async function registerParquet(db, name) {
+  const resp = await fetch(`./data/${name}.parquet`);
+  if (!resp.ok) throw new Error(`${name}.parquet: HTTP ${resp.status}`);
+  await db.registerFileBuffer(`${name}.parquet`, new Uint8Array(await resp.arrayBuffer()));
+}
+
+async function init() {
+  try {
+    await loadMetadata();
+    setStatus('Initializing DuckDB…');
+
+    const db = await initDB();
+    setStatus('Loading terminology data…');
+
+    await Promise.all([
+      registerParquet(db, 'codes_unique'),
+      registerParquet(db, 'coded_entries'),
+      registerParquet(db, 'context_groups'),
+    ]);
+
+    conn = await db.connect();
+    await conn.query(`CREATE VIEW codes_unique AS SELECT * FROM read_parquet('codes_unique.parquet')`);
+    await conn.query(`CREATE VIEW coded_entries AS SELECT * FROM read_parquet('coded_entries.parquet')`);
+
+    setStatus('Ready — type to search (minimum 2 characters)');
+    searchInput.disabled = false;
+    schemeSelect.disabled = false;
+    searchInput.focus();
+    showWelcome();
+  } catch (e) {
+    setStatus('Error initializing: ' + e.message, true);
+    console.error(e);
+  }
+}
+
+// ── Welcome screen ──────────────────────────────────────────────────────────
+function showWelcome() {
+  resultsInfo.textContent = '';
+  tableWrap.innerHTML = `
+    <div class="placeholder">
+      <h2>Search DICOM coded terminology</h2>
+      <p>Find coded concepts by meaning or code value across all 21 coding schemes.<br>
+         CID membership is shown for each code.</p>
+      <p style="margin-top:14px">
+        Try: <code>lung</code> &nbsp; <code>left ventricle</code> &nbsp;
+             <code>CT</code> &nbsp; <code>126000</code>
+      </p>
+    </div>`;
+}
+
+// ── Search ──────────────────────────────────────────────────────────────────
+function scheduleSearch() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(runSearch, 300);
+}
+
+async function runSearch() {
+  if (!conn) return;
+  const term   = searchInput.value.trim();
+  const scheme = schemeSelect.value;
+
+  if (term.length < 2) { showWelcome(); return; }
+
+  const t = escSql(term);
+  const schemeClause = scheme === 'ALL' ? '' : `AND coding_scheme_designator = '${escSql(scheme)}'`;
+  const where = `(code_meaning ILIKE '%${t}%' OR code_value ILIKE '%${t}%') ${schemeClause}`;
+
+  try {
+    const [result, countResult] = await Promise.all([
+      conn.query(`
+        SELECT coding_scheme_designator, code_value, code_meaning, snomed_rt_id, num_cids
+        FROM codes_unique
+        WHERE ${where}
+        ORDER BY coding_scheme_designator, code_meaning
+        LIMIT 200`),
+      conn.query(`SELECT COUNT(*)::INTEGER AS n FROM codes_unique WHERE ${where}`),
+    ]);
+
+    const rows  = result.toArray();
+    const total = Number(countResult.toArray()[0]['n']);
+    renderResults(rows, total, term, scheme);
+  } catch (e) {
+    setStatus('Query error: ' + e.message, true);
+    console.error(e);
+  }
+}
+
+// ── Render results ───────────────────────────────────────────────────────────
+function renderResults(rows, total, term, scheme) {
+  expandedIdx = null;
+  rowMeta = [];
+
+  if (rows.length === 0) {
+    resultsInfo.textContent = '';
+    const schemeNote = scheme !== 'ALL' ? ` in <strong>${esc(scheme)}</strong>` : '';
+    tableWrap.innerHTML = `
+      <div class="placeholder">
+        <h2>No results</h2>
+        <p>No codes match <strong>${esc(term)}</strong>${schemeNote}.<br>
+           Try a shorter term or a different scheme.</p>
+      </div>`;
+    return;
+  }
+
+  const shown = rows.length < total
+    ? `Showing ${rows.length.toLocaleString()} of ${total.toLocaleString()}`
+    : `${total.toLocaleString()}`;
+  resultsInfo.textContent = `${shown} result${total !== 1 ? 's' : ''}`;
+
+  const tbody = rows.map((row, i) => {
+    const s   = String(row['coding_scheme_designator'] ?? '');
+    const cv  = String(row['code_value']               ?? '');
+    const cm  = String(row['code_meaning']             ?? '');
+    const srt = String(row['snomed_rt_id']             ?? '');
+    const n   = Number(row['num_cids']                 ?? 0);
+    rowMeta.push({ scheme: s, codeVal: cv, codeMeaning: cm });
+
+    const cidBtn = n <= 0 ? '' : `
+      <button class="cid-btn" data-idx="${i}" title="Show ${n} context group${n !== 1 ? 's' : ''}">
+        ${n}&thinsp;CID${n !== 1 ? 's' : ''} &#x25BE;
+      </button>`;
+
+    const cvCell = s === 'SCT'
+      ? `<a href="http://snomed.info/id/${esc(cv)}" target="_blank" rel="noopener">${esc(cv)}</a>`
+      : esc(cv);
+
+    return `<tr class="data-row" data-idx="${i}">
+      <td><span class="scheme-tag">${esc(s)}</span></td>
+      <td class="code-val">${cvCell}</td>
+      <td>${esc(cm)}</td>
+      <td class="snomed-rt">${srt ? esc(srt) : ''}</td>
+      <td>${cidBtn}</td>
+    </tr>`;
+  }).join('');
+
+  tableWrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Scheme</th>
+        <th>Code Value</th>
+        <th>Code Meaning</th>
+        <th>SNOMED-RT ID</th>
+        <th>Context Groups</th>
+      </tr></thead>
+      <tbody>${tbody}</tbody>
+    </table>`;
+
+  tableWrap.querySelectorAll('.cid-btn').forEach(btn =>
+    btn.addEventListener('click', () => toggleCidRow(btn))
+  );
+}
+
+// ── CID expansion ────────────────────────────────────────────────────────────
+async function toggleCidRow(btn) {
+  const idx = Number(btn.dataset.idx);
+  const expId = `cid-exp-${idx}`;
+  const existing = document.getElementById(expId);
+
+  // Collapse if already open
+  if (existing) {
+    existing.remove();
+    btn.classList.remove('open');
+    btn.innerHTML = btn.innerHTML.replace('&#x25B4;', '&#x25BE;');
+    expandedIdx = null;
+    return;
+  }
+
+  // Collapse previously open expansion
+  if (expandedIdx !== null) {
+    const old = document.getElementById(`cid-exp-${expandedIdx}`);
+    if (old) old.remove();
+    const oldBtn = tableWrap.querySelector(`.cid-btn[data-idx="${expandedIdx}"]`);
+    if (oldBtn) {
+      oldBtn.classList.remove('open');
+      oldBtn.innerHTML = oldBtn.innerHTML.replace('&#x25B4;', '&#x25BE;');
+    }
+  }
+
+  expandedIdx = idx;
+  btn.classList.add('open');
+  btn.innerHTML = btn.innerHTML.replace('&#x25BE;', '&#x25B4;');
+
+  const { scheme, codeVal, codeMeaning } = rowMeta[idx];
+
+  const sql = `
+    SELECT cid_number, cid_name
+    FROM coded_entries
+    WHERE coding_scheme_designator = '${escSql(scheme)}'
+      AND code_value               = '${escSql(codeVal)}'
+      AND code_meaning             = '${escSql(codeMeaning)}'
+    ORDER BY cid_number::INTEGER`;
+
+  try {
+    const result = await conn.query(sql);
+    const cids   = result.toArray();
+
+    const chips = cids.map(r => {
+      const num  = String(r['cid_number'] ?? '');
+      const name = String(r['cid_name']   ?? '');
+      const cidUrl = `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_${esc(num)}.html`;
+      return `<a class="cid-chip" href="${cidUrl}" target="_blank" rel="noopener"><span class="cid-num">CID ${esc(num)}</span>${esc(name)}</a>`;
+    }).join('');
+
+    const expRow = document.createElement('tr');
+    expRow.id = expId;
+    expRow.className = 'cid-row';
+    expRow.innerHTML = `<td colspan="5"><div class="cid-chips">${chips}</div></td>`;
+
+    const dataRow = tableWrap.querySelector(`tr.data-row[data-idx="${idx}"]`);
+    dataRow.insertAdjacentElement('afterend', expRow);
+  } catch (e) {
+    console.error('CID lookup failed:', e);
+  }
+}
+
+// ── Wire up events ───────────────────────────────────────────────────────────
+searchInput.addEventListener('input', scheduleSearch);
+schemeSelect.addEventListener('change', () => { clearTimeout(debounceTimer); runSearch(); });
+
+init();
+</script>
+
+</body>
+</html>
