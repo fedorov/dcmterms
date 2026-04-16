@@ -8,3 +8,4 @@ build/
 .eggs/
 .venv/
 *.parquet
+!docs/data/*.parquet
