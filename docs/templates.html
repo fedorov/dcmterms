@@ -231,6 +231,52 @@
     }
     .dicom-btn.cid-btn:hover { background: rgba(45,122,79,0.14); }
 
+    /* ── TID sidebar ── */
+    #tid-sidebar {
+      width: 236px;
+      flex-shrink: 0;
+      background: white;
+      border-right: 1px solid #dde3ea;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #sid-header {
+      padding: 8px 12px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #778;
+      border-bottom: 1px solid #e8edf2;
+      flex-shrink: 0;
+    }
+    #sid-count { font-weight: 400; color: #aab; margin-left: 4px; }
+    #tid-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .tid-item {
+      padding: 5px 12px 5px 14px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.1s;
+    }
+    .tid-item:hover { background: #f4f7fb; }
+    .tid-item.active { background: #e8f0fe; border-left-color: #1a3a5c; }
+    .tid-item.hidden { display: none; }
+    .tid-item-id {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      color: #1a3a5c;
+    }
+    .tid-item.root .tid-item-id { color: #4a8abf; }
+    .tid-item-name {
+      font-size: 11.5px;
+      color: #445;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     /* ── Graph hint ── */
     #graph-hint {
       position: absolute;
@@ -323,6 +369,10 @@
 </div>
 
 <div id="main-content">
+  <div id="tid-sidebar">
+    <div id="sid-header">Templates <span id="sid-count"></span></div>
+    <div id="tid-list"></div>
+  </div>
   <div id="chart-container"></div>
 
   <div id="detail-panel" class="hidden">
@@ -632,7 +682,10 @@ function initChart() {
   });
 
   myChart.on('click', params => {
-    if (params.dataType === 'node') showDetailPanel(params.data);
+    if (params.dataType === 'node') {
+      showDetailPanel(params.data);
+      if (params.data._type === 'TID') setActiveSidebarItem(params.data._tid_id);
+    }
   });
 
   myChart.getZr().on('mousedown', () => graphHint.classList.add('hidden'));
@@ -674,6 +727,61 @@ function rerender() {
   const { nodes, matched } = buildVisibleNodes();
   myChart.setOption({ series: [{ data: nodes, links: buildVisibleLinks(matched) }] }, false);
   updateStats();
+  filterSidebar();
+}
+
+// ── TID sidebar ────────────────────────────────────────────────────────────────
+function tidSortKey(id) {
+  const m = id.match(/^(\d+)([A-Za-z]*)$/);
+  return m ? m[1].padStart(6, '0') + (m[2] || '') : id;
+}
+
+function renderTidList() {
+  const tidList = document.getElementById('tid-list');
+  const sidCount = document.getElementById('sid-count');
+  const sorted = [...tidMap.entries()].sort(([a, ta], [b, tb]) => {
+    if ((ta.root === 'yes') !== (tb.root === 'yes')) return ta.root === 'yes' ? -1 : 1;
+    return tidSortKey(a).localeCompare(tidSortKey(b));
+  });
+  sidCount.textContent = `(${sorted.length})`;
+  tidList.innerHTML = sorted.map(([id, t]) =>
+    `<div class="tid-item${t.root === 'yes' ? ' root' : ''}" data-tid="${esc(id)}">` +
+    `<div class="tid-item-id">TID ${esc(id)}</div>` +
+    `<div class="tid-item-name" title="${esc(t.tid_name)}">${esc(t.tid_name)}</div>` +
+    `</div>`
+  ).join('');
+
+  tidList.querySelectorAll('.tid-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = item.dataset.tid;
+      setActiveSidebarItem(id);
+      const nd = allNodes.find(n => n._type === 'TID' && n._tid_id === id);
+      if (!nd) return;
+      const idx = nodeIdxMap.get('TID:' + id);
+      if (idx != null) {
+        myChart.dispatchAction({ type: 'select',    seriesIndex: 0, dataIndex: idx });
+        myChart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: idx });
+      }
+      showDetailPanel(nd);
+    });
+  });
+}
+
+function setActiveSidebarItem(tidId) {
+  const tidList = document.getElementById('tid-list');
+  tidList.querySelectorAll('.tid-item.active').forEach(el => el.classList.remove('active'));
+  const item = tidList.querySelector(`.tid-item[data-tid="${tidId}"]`);
+  if (item) { item.classList.add('active'); item.scrollIntoView({ block: 'nearest' }); }
+}
+
+function filterSidebar() {
+  const q = searchQuery.toLowerCase().trim();
+  document.querySelectorAll('#tid-list .tid-item').forEach(item => {
+    const id = item.dataset.tid;
+    const t  = tidMap.get(id);
+    const match = !q || (`tid${id} ${t ? t.tid_name : ''}`).toLowerCase().includes(q);
+    item.classList.toggle('hidden', !match);
+  });
 }
 
 // ── Detail panel ───────────────────────────────────────────────────────────────
@@ -779,6 +887,7 @@ async function init() {
 
     loadingText.textContent = 'Rendering…';
     initChart();
+    renderTidList();
 
     loadingOverlay.classList.add('hidden');
     setStatus(`${tidMap.size} templates · ${allNodes.filter(n=>n._type==='CID').length} context groups`);
