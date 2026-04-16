@@ -281,6 +281,8 @@
     .tid-item:hover { background: #f4f7fb; }
     .tid-item.active { background: #e8f0fe; border-left-color: #1a3a5c; }
     .tid-item.cid-type.active { background: #e6f4ed; border-left-color: #2d7a4f; }
+    .tid-item.pinned { border-left-color: #e8a020; background: #fffbf0; }
+    .tid-item.active.pinned { border-left-color: #e8a020; }
     .tid-item.hidden { display: none; }
     .tid-item-info { flex: 1; min-width: 0; }
     .tid-item-id {
@@ -430,7 +432,9 @@
   <button class="toggle-btn active-tid" id="btnTidEdges">TID→TID includes</button>
   <button class="toggle-btn active-cid" id="btnCidRefs">TID→CID references</button>
   <button class="toggle-btn active-cid" id="btnCidNodes">CID nodes</button>
+  <button class="toggle-btn" id="btnLabels">Labels</button>
   <button class="toggle-btn" id="btnShowPinned" disabled>📌 Pinned (0)</button>
+  <button class="toggle-btn" id="btnUnpinAll" disabled>Unpin all</button>
   <span id="statsText"></span>
 </div>
 
@@ -490,7 +494,7 @@ const cidMap    = new Map();   // cid_number_str -> {cid_name, cid_type}
 const adjacency = new Map();   // 'TID:1500' -> [{target_type, target_id, relationship}]
 const nodeIdxMap = new Map();  // node id -> data index in last render
 
-const filter = { showTidTid: true, showCidRefs: true, showCids: true };
+const filter = { showTidTid: true, showCidRefs: true, showCids: true, showLabels: false };
 let searchQuery = '';
 let debounceTimer = null;
 const pinnedNodes = new Set();
@@ -802,7 +806,11 @@ function initChart() {
         position: 'right',
         color: '#445',
         fontSize: 10,
-        formatter: '{b}',
+        formatter(params) {
+          const d = params.data;
+          if (!d) return '';
+          return d._type === 'TID' ? `TID ${d._tid_id}` : `CID ${d._cid_num}`;
+        },
       },
       lineStyle: { width: 1, opacity: 0.22, curveness: 0.15 },
       emphasis: {
@@ -856,7 +864,7 @@ function buildVisibleNodes() {
     .map((n, i) => {
       nodeIdxMap.set(n.id, i);
       const isMatch = usePin ? neighborhood.has(n.id) : (!q || n._srch.includes(q));
-      if (isMatch) { matched.add(n.id); return n; }
+      if (isMatch) { matched.add(n.id); return { ...n, label: { show: filter.showLabels } }; }
       return { ...n, itemStyle: { color: '#e2e8f0', borderColor: 'transparent' }, label: { show: false } };
     });
   return { nodes, matched };
@@ -926,8 +934,8 @@ function renderTidList() {
 
   tidList.querySelectorAll('.tid-item').forEach(item => {
     item.addEventListener('click', e => {
-      if (e.target.classList.contains('tid-item-link')) return;
-      if (e.target.classList.contains('pin-btn')) { togglePin(item.dataset.node); return; }
+      if (e.target.closest('.tid-item-link')) return;
+      if (e.target.closest('.pin-btn')) { togglePin(item.dataset.node); return; }
       const nodeId = item.dataset.node;
       setActiveSidebarItem(nodeId);
       const nd = allNodes.find(n => n.id === nodeId);
@@ -964,8 +972,10 @@ function filterSidebar() {
 // ── Pin logic ─────────────────────────────────────────────────────────────────
 function updatePinBadge() {
   const btn = document.getElementById('btnShowPinned');
+  const unpinBtn = document.getElementById('btnUnpinAll');
   btn.textContent = `📌 Pinned (${pinnedNodes.size})`;
   btn.disabled = pinnedNodes.size === 0;
+  unpinBtn.disabled = pinnedNodes.size === 0;
   if (pinnedNodes.size === 0 && showPinnedNeighborhood) {
     showPinnedNeighborhood = false;
     btn.className = 'toggle-btn';
@@ -977,10 +987,12 @@ function togglePin(nodeId) {
   else pinnedNodes.add(nodeId);
   const isPinned = pinnedNodes.has(nodeId);
   updatePinBadge();
-  // Sync sidebar pin buttons for this node
+  // Sync sidebar pin buttons and row indicators for this node
   document.querySelectorAll(`.pin-btn[data-pin-node="${nodeId}"]`).forEach(btn => {
     btn.classList.toggle('pinned', isPinned);
     btn.title = isPinned ? 'Unpin' : 'Pin';
+    const row = btn.closest('.tid-item');
+    if (row) row.classList.toggle('pinned', isPinned);
   });
   // Sync detail panel button if it's showing this node
   const dp = document.getElementById('detail-pin-btn');
@@ -991,9 +1003,25 @@ function togglePin(nodeId) {
   if (showPinnedNeighborhood) rerender();
 }
 
+function unpinAll() {
+  pinnedNodes.clear();
+  document.querySelectorAll('.pin-btn.pinned').forEach(btn => {
+    btn.classList.remove('pinned');
+    btn.title = 'Pin';
+  });
+  document.querySelectorAll('.tid-item.pinned').forEach(row => row.classList.remove('pinned'));
+  const dp = document.getElementById('detail-pin-btn');
+  if (dp) { dp.classList.remove('pinned'); dp.textContent = '📌 Pin this node'; }
+  showPinnedNeighborhood = false;
+  updatePinBadge();
+  rerender();
+}
+
 // ── Detail panel ───────────────────────────────────────────────────────────────
 function showDetailPanel(nodeData) {
+  const wasHidden = detailPanel.classList.contains('hidden');
   detailPanel.classList.remove('hidden');
+  if (wasHidden) setTimeout(() => myChart?.resize(), 50);
 
   if (nodeData._type === 'TID') {
     const id = nodeData._tid_id;
@@ -1058,7 +1086,10 @@ function showDetailPanel(nodeData) {
 }
 
 // ── Events ─────────────────────────────────────────────────────────────────────
-closePanel.addEventListener('click', () => detailPanel.classList.add('hidden'));
+closePanel.addEventListener('click', () => {
+  detailPanel.classList.add('hidden');
+  setTimeout(() => myChart?.resize(), 50);
+});
 
 function toggleBtn(btn, field, cls) {
   filter[field] = !filter[field];
@@ -1068,6 +1099,7 @@ function toggleBtn(btn, field, cls) {
 btnTidEdges.addEventListener('click', () => toggleBtn(btnTidEdges, 'showTidTid',  'active-tid'));
 btnCidRefs .addEventListener('click', () => toggleBtn(btnCidRefs,  'showCidRefs', 'active-cid'));
 btnCidNodes.addEventListener('click', () => toggleBtn(btnCidNodes, 'showCids',    'active-cid'));
+document.getElementById('btnLabels').addEventListener('click', () => toggleBtn(document.getElementById('btnLabels'), 'showLabels', 'active-tid'));
 
 document.getElementById('btnShowPinned').addEventListener('click', () => {
   if (pinnedNodes.size === 0) return;
@@ -1076,6 +1108,7 @@ document.getElementById('btnShowPinned').addEventListener('click', () => {
     'toggle-btn' + (showPinnedNeighborhood ? ' active-pin' : '');
   rerender();
 });
+document.getElementById('btnUnpinAll').addEventListener('click', unpinAll);
 
 searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
