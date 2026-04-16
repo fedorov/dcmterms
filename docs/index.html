@@ -304,9 +304,13 @@ function renderResults(rows, total, term, scheme) {
         ${n}&thinsp;CID${n !== 1 ? 's' : ''} &#x25BE;
       </button>`;
 
+    const cvCell = s === 'SCT'
+      ? `<a href="http://snomed.info/id/${esc(cv)}" target="_blank" rel="noopener">${esc(cv)}</a>`
+      : esc(cv);
+
     return `<tr class="data-row" data-idx="${i}">
       <td><span class="scheme-tag">${esc(s)}</span></td>
-      <td class="code-val">${esc(cv)}</td>
+      <td class="code-val">${cvCell}</td>
       <td>${esc(cm)}</td>
       <td class="snomed-rt">${srt ? esc(srt) : ''}</td>
       <td>${cidBtn}</td>
