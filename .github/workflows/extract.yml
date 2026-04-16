@@ -95,17 +95,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          shopt -s nullglob
+          files=(output/*.csv output/*.parquet output/extraction_metadata.json)
           gh release create "${{ inputs.edition }}.latest" \
             --title "DICOM Terminology Tables — ${{ inputs.edition }}" \
             --notes-file release_notes.md \
-            output/coded_entries.csv \
-            output/coded_entries.parquet \
-            output/codes_unique.csv \
-            output/codes_unique.parquet \
-            output/context_groups.csv \
-            output/context_groups.parquet \
-            output/templates.csv \
-            output/templates.parquet \
-            output/relationships.csv \
-            output/relationships.parquet \
-            output/extraction_metadata.json
+            "${files[@]}"
