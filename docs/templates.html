@@ -69,10 +69,12 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-left: auto;
       font-size: 12px;
       color: rgba(255,255,255,0.65);
     }
+    .gh-link { margin-left: auto; color: rgba(255,255,255,0.65); text-decoration: none;
+               font-size: 12px; white-space: nowrap; }
+    .gh-link:hover { color: white; }
     .dot {
       width: 7px; height: 7px;
       border-radius: 50%;
@@ -422,6 +424,7 @@
   <h1>SR Templates</h1>
   <span class="badge" id="editionBadge">Loading…</span>
   <span class="badge" id="countBadge"></span>
+  <a class="gh-link" href="https://github.com/fedorov/dcmterms/issues" target="_blank" rel="noopener" title="Open source on GitHub — feedback &amp; suggestions welcome">Feedback ↗</a>
   <div class="status-row">
     <span class="dot loading" id="statusDot"></span>
     <span id="statusText">Initializing…</span>
