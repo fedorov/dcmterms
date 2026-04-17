@@ -30,6 +30,9 @@ CHTML (chunked XHTML) pages from the DICOM standard website. Parsed with stdlib 
 - 30 CIDs have no main data table (retired/empty context groups) — logged as warnings and skipped
 - 99 CIDs are pure aggregators (only includes, no direct entries)
 - Retired codes (e.g., SRT entries in CID 26) appear in `div.note` sections — parser correctly ignores these
+- Some CIDs have a per-row "context group" column (e.g., CID 7150 "Segmentation Property Category" has "Segmentation Property Type Context Group") — these columns are in `CONTEXT_GROUP_COLUMNS` set and extracted as `context_group_cid` on `CodedEntry`; also stored as `code-context-group` edges in `relationships`
+- Parser raises `ValueError` if parsed CID number doesn't match filename (catches metadata parse failures early)
+- Some CID files exist on the DICOM server but are absent from the Apache directory listing (e.g., CID 7150). `download.py` fixes this with `_fill_navigation_gaps()`: after bulk download it scans cached files for `next`/`prev` nav links pointing to undownloaded files, then fetches them
 
 ### TIDs
 - TID table columns: (row#), NL, Rel with Parent, VT, Concept Name, VM, Req Type, Condition, Value Set Constraint
@@ -49,11 +52,11 @@ CHTML (chunked XHTML) pages from the DICOM standard website. Parsed with stdlib 
 
 ## Output Tables
 
-- `coded_entries.csv/.parquet` — All coded entries with CID number, CID name, and code details
+- `coded_entries.csv/.parquet` — All coded entries with CID number, CID name, and code details. Includes `context_group_cid` (nullable int) for CIDs that have a per-row "Segmentation Property Type Context Group" column (e.g., CID 7150).
 - `codes_unique.csv/.parquet` — Deduplicated by (scheme, code_value, code_meaning) with `num_cids` count
 - `context_groups.csv/.parquet` — CID metadata with code counts and include lists
 - `templates.csv/.parquet` — TID metadata with row counts, TID includes, and CID references
-- `relationships.csv/.parquet` — Normalized edge list: CID→CID includes, TID→TID includes, TID→CID references. All IDs are strings (TIDs can have letter suffixes like "10003A").
+- `relationships.csv/.parquet` — Normalized edge list: CID→CID includes, TID→TID includes, TID→CID references, CID→CID code-context-group. All IDs are strings (TIDs can have letter suffixes like "10003A").
 - `extraction_metadata.json` — Provenance (DICOM edition, date, counts, per-scheme breakdown)
 
 ## GCS Cache
@@ -84,7 +87,7 @@ Tables loaded into `idc-sandbox-000.dcmterm`. When loading with `bq load`, use e
 
 - 1,466 CID files parsed, 16,570 coded entries, 14,756 unique codes
 - 384 TIDs parsed, 4,039 template rows
-- 3,281 relationships: 624 CID→CID includes + 1,123 TID→TID includes + 1,534 TID→CID references
+- 3,290 relationships: 624 CID→CID includes + 1,123 TID→TID includes + 1,534 TID→CID references + 9 CID→CID code-context-group
 - 21 coding schemes: SCT (9,680), DCM (3,973), MDC (1,348), LN (956), IBSI (154), UCUM (127), RADLEX (75), UMLS (65), NCIt (57), FMA (45), NCDR (39), plus 10 more
 
 ## Tech Stack
@@ -108,7 +111,7 @@ src/dcmterms/
   validate.py           — Validate extraction completeness against source files
   cli.py                — CLI entry point (extract, download, validate subcommands)
 tests/
-  fixtures/             — Real XHTML files for testing (CID 4, 10, 26, 29 + TID 2001, 10002 + chapter_A)
+  fixtures/             — Real XHTML files for testing (CID 4, 10, 26, 29, 7150, 7194 + TID 2001, 10002 + chapter_A)
 output/                 — Generated artifacts (gitignored)
 cache/                  — Downloaded CHTML files (gitignored)
 ```
