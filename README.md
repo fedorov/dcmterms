@@ -19,7 +19,7 @@ Parsing 1,466 Context Group files and 333 SR Template source files from Part 16 
 | `relationships` | Normalized edge list: CID→CID includes, TID→TID includes, TID→CID references |
 | `extraction_metadata.json` | Provenance: DICOM edition, date, counts, per-scheme breakdown |
 
-Latest extraction (2026b): **16,570 coded entries · 14,756 unique codes · 21 coding schemes · 4,039 template rows · 3,281 relationships**
+Latest extraction (2026b): **16,570 coded entries · 14,756 unique codes · 21 coding schemes · 4,039 template rows · 3,290 relationships**
 
 ## Installation
 
@@ -73,6 +73,10 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
+## Implementation
+
+This project was designed and built with [Claude Code](https://claude.ai/code) using Claude Sonnet 4.6 and Claude Opus 4.6 (Anthropic's AI coding assistant). Claude authored the parsers, extraction pipeline, test suite, and web browser — working from high-level goals and iterative feedback. The source code and all outputs are reviewed and maintained by the project author.
+
 ## License
 
-MIT
+Apache 2.0 — see [LICENSE](LICENSE).
