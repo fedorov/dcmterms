@@ -687,8 +687,7 @@ function buildGraphData() {
     });
   }
 
-  for (const num of refCids) {
-    const c = cidMap.get(num);
+  for (const [num, c] of cidMap) {
     const deg = degree.get('CID:' + num) || 0;
     allNodes.push({
       id: 'CID:' + num,
@@ -697,7 +696,7 @@ function buildGraphData() {
       category: 2,
       symbolSize: Math.max(6, Math.min(18, 6 + Math.sqrt(deg) * 2.0)),
       label: { show: false },
-      _type: 'CID', _cid_num: num, _srch: (`cid${num} ${c ? c.cid_name : ''}`).toLowerCase(),
+      _type: 'CID', _cid_num: num, _srch: (`cid${num} ${c.cid_name}`).toLowerCase(),
     });
   }
 
@@ -718,7 +717,7 @@ function buildGraphData() {
     }
   }
 
-  countBadge.textContent = `${tidMap.size} templates · ${refCids.size} context groups`;
+  countBadge.textContent = `${tidMap.size} templates · ${cidMap.size} context groups`;
 }
 
 function updateStats() {

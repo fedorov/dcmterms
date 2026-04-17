@@ -22,6 +22,7 @@ class CodedEntry:
     code_meaning: str
     snomed_rt_id: str | None = None
     umls_concept_uid: str | None = None
+    context_group_cid: int | None = None  # per-row CID ref (e.g., "Segmentation Property Type Context Group")
 
 
 @dataclass

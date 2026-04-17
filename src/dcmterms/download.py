@@ -157,6 +157,49 @@ def _bulk_download(
     return cache_dir
 
 
+def _fill_navigation_gaps(
+    base_url: str,
+    cache_dir: Path,
+    session: requests.Session,
+    delay: float = 0.25,
+) -> int:
+    """Download CID files reachable via prev/next navigation but missing from cache.
+
+    Scans every cached sect_CID_*.html for <link rel="next"> pointing to a
+    sect_CID_*.html that is not yet in cache_dir, then downloads those files.
+    Repeats until no new files are discovered.  Returns the count of extra
+    files downloaded.
+    """
+    cid_link_pattern = re.compile(
+        r'rel="(?:next|prev)"\s+href="(sect_CID_\d+\.html)"',
+        re.IGNORECASE,
+    )
+    total_extra = 0
+    while True:
+        cached = set(p.name for p in cache_dir.glob("sect_CID_*.html"))
+        missing: set[str] = set()
+        for fname in cached:
+            content = (cache_dir / fname).read_text(encoding="utf-8", errors="replace")
+            for m in cid_link_pattern.finditer(content):
+                target = m.group(1)
+                if target not in cached:
+                    missing.add(target)
+        if not missing:
+            break
+        logger.warning(
+            "%d CID file(s) found via navigation links but missing from cache: %s",
+            len(missing),
+            ", ".join(sorted(missing)),
+        )
+        urls = [base_url.rstrip("/") + "/" + f for f in sorted(missing)]
+        throttle_lock = Lock()
+        for url in urls:
+            dest = cache_dir / url.rsplit("/", 1)[-1]
+            _download_file(url, dest, session, throttle_lock, delay)
+        total_extra += len(missing)
+    return total_extra
+
+
 def download_chtml(
     base_url: str = DEFAULT_BASE_URL,
     cache_dir: Path | None = None,
@@ -175,7 +218,13 @@ def download_chtml(
     if cache_dir is None:
         cache_dir = Path("cache/part16")
 
-    return _bulk_download(urls, cache_dir, session, max_workers, delay)
+    _bulk_download(urls, cache_dir, session, max_workers, delay)
+
+    extra = _fill_navigation_gaps(base_url, cache_dir, session, delay)
+    if extra:
+        logger.info("Navigation-gap fill added %d extra CID file(s)", extra)
+
+    return cache_dir
 
 
 def download_tid_chtml(

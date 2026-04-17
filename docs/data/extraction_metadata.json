@@ -1,12 +1,12 @@
 {
   "dicom_edition": "2026b",
-  "extraction_date": "2026-03-27",
+  "extraction_date": "2026-04-17",
   "source": "cache/part16",
   "total_cid_files_parsed": 1466,
   "total_coded_entries": 16570,
   "unique_codes": 14756,
   "cids_with_includes": 227,
-  "total_relationships": 3281,
+  "total_relationships": 3290,
   "scheme_counts": {
     "SCT": 9680,
     "DCM": 3973,

@@ -45,17 +45,23 @@ def parse_all_cids(
     results: dict[int, CIDParseResult] = {}
     total = len(files)
 
+    failures: list[str] = []
     for i, filepath in enumerate(files, 1):
         try:
             result = parse_cid_file(filepath)
             results[result.metadata.cid_number] = result
         except Exception:
             logger.exception("Failed to parse %s", filepath.name)
+            failures.append(filepath.name)
 
         if i % 100 == 0 or i == total:
             print(f"\r  Parsing: [{i}/{total}] {100*i/total:.0f}%", end="", flush=True)
 
     print()
+    if failures:
+        raise RuntimeError(
+            f"Failed to parse {len(failures)} CID file(s): {', '.join(failures)}"
+        )
     logger.info("Parsed %d CID files", len(results))
     return results
 
@@ -77,6 +83,7 @@ def build_coded_entries_df(
                     "code_meaning": entry.code_meaning,
                     "snomed_rt_id": entry.snomed_rt_id,
                     "umls_concept_uid": entry.umls_concept_uid,
+                    "context_group_cid": entry.context_group_cid,
                 }
             )
     return pd.DataFrame(rows)
@@ -147,23 +154,38 @@ def build_relationships_df(
 ) -> pd.DataFrame:
     """Build the relationships DataFrame (normalized edge list)."""
     rels = build_relationships(results)
-    if not rels:
+    rows = [
+        {
+            "source_type": r.source_type,
+            "source_id": str(r.source_id),
+            "target_type": r.target_type,
+            "target_id": str(r.target_id),
+            "relationship": r.relationship,
+        }
+        for r in rels
+    ]
+
+    # Per-row CID references (e.g., "Segmentation Property Type Context Group" column)
+    seen: set[tuple] = {(r["source_id"], r["target_id"], r["relationship"]) for r in rows}
+    for cid_num, result in sorted(results.items()):
+        for entry in result.entries:
+            if entry.context_group_cid is not None:
+                key = (str(cid_num), str(entry.context_group_cid), "code-context-group")
+                if key not in seen:
+                    seen.add(key)
+                    rows.append({
+                        "source_type": "CID",
+                        "source_id": str(cid_num),
+                        "target_type": "CID",
+                        "target_id": str(entry.context_group_cid),
+                        "relationship": "code-context-group",
+                    })
+
+    if not rows:
         return pd.DataFrame(
             columns=["source_type", "source_id", "target_type", "target_id", "relationship"]
         )
-    df = pd.DataFrame(
-        [
-            {
-                "source_type": r.source_type,
-                "source_id": str(r.source_id),
-                "target_type": r.target_type,
-                "target_id": str(r.target_id),
-                "relationship": r.relationship,
-            }
-            for r in rels
-        ]
-    )
-    return df
+    return pd.DataFrame(rows)
 
 
 def run_extraction(
@@ -292,6 +314,7 @@ def parse_all_tids(
     results: dict[str, TIDParseResult] = {}
     total = len(files)
 
+    failures: list[str] = []
     for i, filepath in enumerate(files, 1):
         try:
             file_results = parse_tid_file(filepath)
@@ -302,12 +325,17 @@ def parse_all_tids(
                     results[tid_id] = r
         except Exception:
             logger.exception("Failed to parse %s", filepath.name)
+            failures.append(filepath.name)
 
         if i % 50 == 0 or i == total:
             print(f"\r  Parsing TIDs: [{i}/{total}] {100*i/total:.0f}%", end="", flush=True)
 
     if total > 0:
         print()
+    if failures:
+        raise RuntimeError(
+            f"Failed to parse {len(failures)} TID file(s): {', '.join(failures)}"
+        )
     logger.info("Parsed %d unique TIDs from %d files", len(results), total)
     return results
 

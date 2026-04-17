@@ -23,6 +23,9 @@ SNOMED_RT_COLUMNS = {"SNOMED-RT ID", "SNOMED-CT Concept ID", "SNOMED-RT Concept 
 # Column name for UMLS
 UMLS_COLUMN = "UMLS Concept Unique ID"
 
+# Columns that contain a per-row CID reference (e.g., a linked context group)
+CONTEXT_GROUP_COLUMNS = {"Segmentation Property Type Context Group"}
+
 
 def _parse_metadata(root: "ET.Element") -> CIDMetadata:
     """Extract CID metadata from the page heading and variablelist."""
@@ -136,12 +139,22 @@ def _parse_data_row(
         if val:
             umls_uid = val
 
+    context_group_cid: int | None = None
+    for col_name in CONTEXT_GROUP_COLUMNS:
+        if col_name in headers:
+            val = cell(col_name)
+            m = re.search(r"CID\s+(\d+)", val)
+            if m:
+                context_group_cid = int(m.group(1))
+            break
+
     return CodedEntry(
         coding_scheme_designator=designator,
         code_value=code_value,
         code_meaning=code_meaning,
         snomed_rt_id=snomed_rt_id,
         umls_concept_uid=umls_uid,
+        context_group_cid=context_group_cid,
     )
 
 
@@ -149,6 +162,17 @@ def parse_cid_file(filepath: Path) -> CIDParseResult:
     """Parse a single CID XHTML file and return the parsed result."""
     root = parse_xhtml(filepath)
     metadata = _parse_metadata(root)
+
+    m = re.search(r"CID_(\d+)", filepath.name)
+    if m:
+        expected = int(m.group(1))
+        if metadata.cid_number != expected:
+            raise ValueError(
+                f"CID number mismatch in {filepath.name}: "
+                f"filename says {expected}, parsed {metadata.cid_number}"
+            )
+    if metadata.cid_number == 0:
+        raise ValueError(f"Failed to parse CID number from {filepath.name}")
 
     table = find_main_table(root)
     if table is None:

@@ -99,6 +99,61 @@ class TestCID4:
         assert e.code_meaning == "Atrium"
 
 
+class TestCID7150:
+    """CID 7150: 6-column table with per-row context group CID references."""
+
+    @pytest.fixture(autouse=True)
+    def parse(self):
+        self.result = parse_cid_file(FIXTURES / "sect_CID_7150.html")
+
+    def test_metadata(self):
+        m = self.result.metadata
+        assert m.cid_number == 7150
+        assert m.cid_name == "Segmentation Property Category"
+        assert m.cid_type == "extensible"
+
+    def test_entries_count(self):
+        assert len(self.result.entries) == 9
+
+    def test_no_includes(self):
+        assert self.result.includes == []
+
+    def test_all_entries_have_context_group_cid(self):
+        for entry in self.result.entries:
+            assert entry.context_group_cid is not None
+
+    def test_context_group_cids(self):
+        expected = {7191, 7192, 7193, 7194, 7195, 7196, 7197, 7198, 7164}
+        actual = {e.context_group_cid for e in self.result.entries}
+        assert actual == expected
+
+    def test_first_entry(self):
+        e = self.result.entries[0]
+        assert e.coding_scheme_designator == "SCT"
+        assert e.code_value == "85756007"
+        assert e.code_meaning == "Tissue"
+        assert e.context_group_cid == 7191
+
+
+class TestCID7194:
+    """CID 7194: pure aggregator — only Include rows, no direct coded entries."""
+
+    @pytest.fixture(autouse=True)
+    def parse(self):
+        self.result = parse_cid_file(FIXTURES / "sect_CID_7194.html")
+
+    def test_metadata(self):
+        m = self.result.metadata
+        assert m.cid_number == 7194
+        assert "Morphologically Abnormal Structure" in m.cid_name
+
+    def test_no_entries(self):
+        assert self.result.entries == []
+
+    def test_includes(self):
+        assert self.result.includes == [7159, 7199]
+
+
 class TestCID26:
     """CID 26: 5-column table, 1 include. Retired SRT codes in note section should be excluded."""
 
