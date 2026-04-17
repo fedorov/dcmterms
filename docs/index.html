@@ -29,6 +29,9 @@
 
     .hero { margin-bottom: 40px; }
     .hero p { font-size: 15px; line-height: 1.7; color: #334; max-width: 680px; }
+    .hero a { color: #1a3a5c; text-decoration: underline; text-underline-offset: 2px; }
+    .hero a:hover { color: #2a5a8c; }
+    .site-name { font-weight: 700; color: #1a3a5c; letter-spacing: -0.2px; }
 
     .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
                      text-transform: uppercase; color: #778; margin-bottom: 14px; }
@@ -71,10 +74,14 @@
 
 <main>
   <section class="hero">
-    <p>DICOM Standard defines the rules of play, it dictates the terms for its users to adhere.
-       But navigating and understanding those rules can be daunting with the volume of the
-       information packed into the standard! dcmterms is here to help you navigate the complex
-       world of the DICOM standard&hellip; or at least some parts of it!</p>
+    <p>The DICOM Standard defines the rules of play &mdash; and dictates the terms.
+       But with over 14,000 coded concepts spread across 1,466 Context Groups and
+       384 Structured Reporting Templates in
+       <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part16/PS3.16.html"
+          target="_blank" rel="noopener">Part 16</a>,
+       navigating those terms is no small feat.
+       <strong class="site-name">dcmterms</strong> turns that sprawl into searchable,
+       interactive tools&hellip; or at least some parts of it!</p>
   </section>
 
   <div class="section-label">Resources</div>
