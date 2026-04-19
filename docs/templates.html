@@ -75,6 +75,62 @@
     .gh-link { margin-left: auto; color: rgba(255,255,255,0.65); text-decoration: none;
                font-size: 12px; white-space: nowrap; }
     .gh-link:hover { color: white; }
+    .info-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.85);
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      font-size: 12px; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      padding: 0;
+      line-height: 1;
+    }
+    .info-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* ── Info modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+    }
+    .modal-backdrop.hidden { display: none; }
+    .modal-box {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      max-width: 480px;
+      width: calc(100% - 40px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+      position: relative;
+    }
+    .modal-box h2 {
+      font-size: 16px; font-weight: 700; color: #1a3a5c;
+      margin-bottom: 14px;
+    }
+    .modal-source-tag {
+      display: inline-block;
+      background: #e8f0fe; color: #1a3a5c;
+      font-size: 12px; font-weight: 600;
+      padding: 3px 10px; border-radius: 4px;
+      margin-bottom: 14px;
+    }
+    .modal-box p {
+      font-size: 13px; line-height: 1.7; color: #334;
+      margin-bottom: 10px;
+    }
+    .modal-box a { color: #1a3a5c; }
+    .modal-close {
+      position: absolute; top: 12px; right: 14px;
+      background: none; border: none;
+      font-size: 1.3rem; color: #889; cursor: pointer;
+      line-height: 1; padding: 2px 6px;
+    }
+    .modal-close:hover { color: #334; }
     .dot {
       width: 7px; height: 7px;
       border-radius: 50%;
@@ -422,14 +478,32 @@
   </a>
   <span class="header-sep">/</span>
   <h1>SR Templates</h1>
+  <button class="info-btn" id="infoBtn" title="About this data">i</button>
   <span class="badge" id="editionBadge">Loading…</span>
-  <span class="badge" id="countBadge"></span>
   <a class="gh-link" href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener" title="Feedback &amp; suggestions welcome — file an issue on GitHub">GitHub ↗</a>
+  <span class="badge" id="countBadge"></span>
   <div class="status-row">
     <span class="dot loading" id="statusDot"></span>
     <span id="statusText">Initializing…</span>
   </div>
 </header>
+
+<div class="modal-backdrop hidden" id="infoModal">
+  <div class="modal-box">
+    <button class="modal-close" id="infoModalClose">×</button>
+    <h2>About this data</h2>
+    <span class="modal-source-tag">Extracted from DICOM Part 16</span>
+    <p>All SR template definitions and context group references are parsed directly from the
+       <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part16/PS3.16.html"
+          target="_blank" rel="noopener">DICOM Standard Part 16</a>
+       CHTML pages using an automated Python pipeline.</p>
+    <p>The graph shows 384 Structured Reporting Templates (TIDs) and their include and
+       context group reference relationships. Node sizes reflect connectivity degree.
+       Source data is regenerated with each new DICOM edition.</p>
+    <p>Open source on <a href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener">GitHub ↗</a>
+       &nbsp;·&nbsp; Questions? <a href="https://github.com/fedorov/dcmterms/issues" target="_blank" rel="noopener">File an issue ↗</a></p>
+  </div>
+</div>
 
 <div class="control-panel">
   <div class="search-wrap">
@@ -1155,7 +1229,7 @@ async function init() {
     renderTidList();
 
     loadingOverlay.classList.add('hidden');
-    setStatus(`${tidMap.size} templates · ${allNodes.filter(n=>n._type==='CID').length} context groups`);
+    document.querySelector('.status-row').style.display = 'none';
   } catch (e) {
     loadingText.textContent = 'Error: ' + e.message;
     setStatus('Load failed', 'error');
@@ -1164,6 +1238,13 @@ async function init() {
 }
 
 init();
+
+// ── Info modal ─────────────────────────────────────────────────────────────────
+const infoModal      = document.getElementById('infoModal');
+const infoModalClose = document.getElementById('infoModalClose');
+document.getElementById('infoBtn').addEventListener('click', () => infoModal.classList.remove('hidden'));
+infoModalClose.addEventListener('click', () => infoModal.classList.add('hidden'));
+infoModal.addEventListener('click', e => { if (e.target === infoModal) infoModal.classList.add('hidden'); });
 </script>
 
 </body>
