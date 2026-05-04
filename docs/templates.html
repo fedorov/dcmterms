@@ -551,7 +551,7 @@
 { "imports": { "apache-arrow": "https://esm.sh/apache-arrow@18" } }
 </script>
 <script type="module">
-import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/dist/duckdb-browser.mjs';
+import * as duckdb from 'https://unpkg.com/@duckdb/duckdb-wasm@1.29.0/dist/duckdb-browser.mjs';
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const editionBadge   = document.getElementById('editionBadge');
@@ -685,7 +685,11 @@ async function loadMetadata() {
 
 // ── DuckDB init ───────────────────────────────────────────────────────────────
 async function initDB() {
-  const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+  const UNPKG = 'https://unpkg.com/@duckdb/duckdb-wasm@1.29.0/dist/';
+  const bundle = await duckdb.selectBundle({
+    mvp: { mainModule: UNPKG + 'duckdb-mvp.wasm', mainWorker: UNPKG + 'duckdb-browser-mvp.worker.js' },
+    eh:  { mainModule: UNPKG + 'duckdb-eh.wasm',  mainWorker: UNPKG + 'duckdb-browser-eh.worker.js'  },
+  });
   const workerUrl = URL.createObjectURL(
     new Blob([`importScripts("${bundle.mainWorker}")`], { type: 'text/javascript' })
   );
