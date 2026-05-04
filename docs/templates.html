@@ -551,7 +551,7 @@
 { "imports": { "apache-arrow": "https://esm.sh/apache-arrow@18" } }
 </script>
 <script type="module">
-import * as duckdb from 'https://unpkg.com/@duckdb/duckdb-wasm@1.29.0/dist/duckdb-browser.mjs';
+let duckdb;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 const editionBadge   = document.getElementById('editionBadge');
@@ -685,10 +685,11 @@ async function loadMetadata() {
 
 // ── DuckDB init ───────────────────────────────────────────────────────────────
 async function initDB() {
-  const UNPKG = 'https://unpkg.com/@duckdb/duckdb-wasm@1.29.0/dist/';
+  const LOCAL = new URL('./wasm/', location.href).href;
+  const UNPKG  = 'https://unpkg.com/@duckdb/duckdb-wasm@1.29.0/dist/';
   const bundle = await duckdb.selectBundle({
-    mvp: { mainModule: UNPKG + 'duckdb-mvp.wasm', mainWorker: UNPKG + 'duckdb-browser-mvp.worker.js' },
-    eh:  { mainModule: UNPKG + 'duckdb-eh.wasm',  mainWorker: UNPKG + 'duckdb-browser-eh.worker.js'  },
+    mvp: { mainModule: UNPKG + 'duckdb-mvp.wasm', mainWorker: LOCAL + 'duckdb-browser-mvp.worker.js' },
+    eh:  { mainModule: UNPKG + 'duckdb-eh.wasm',  mainWorker: LOCAL + 'duckdb-browser-eh.worker.js'  },
   });
   const workerUrl = URL.createObjectURL(
     new Blob([`importScripts("${bundle.mainWorker}")`], { type: 'text/javascript' })
@@ -1206,6 +1207,11 @@ searchInput.addEventListener('input', () => {
 // ── Main init ──────────────────────────────────────────────────────────────────
 async function init() {
   try {
+    try {
+      duckdb = await import('./wasm/duckdb-browser.mjs');
+    } catch {
+      throw new Error('Could not load the database engine. Check your network connection and reload the page.');
+    }
     await loadMetadata();
     setStatus('Loading data…', 'loading');
 
