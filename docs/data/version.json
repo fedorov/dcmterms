@@ -1,6 +1,6 @@
 {
-  "sha": "0340017c3f2c807c550c6f133efa14a305149861",
-  "short_sha": "0340017",
-  "committed_at": "2026-07-02T16:28:17-04:00",
-  "message": "Show deployed commit SHA badge on all pages"
+  "sha": "ebed540835970bce05347aa30d7f788e07eda020",
+  "short_sha": "ebed540",
+  "committed_at": "2026-07-02T16:33:52-04:00",
+  "message": "Fix commit badge staying hidden after load"
 }
