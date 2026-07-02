@@ -57,7 +57,7 @@ CHTML (chunked XHTML) pages from the DICOM standard website. Parsed with stdlib 
 - `context_groups.csv/.parquet` — CID metadata with code counts and include lists
 - `templates.csv/.parquet` — TID metadata with row counts, TID includes, and CID references
 - `relationships.csv/.parquet` — Normalized edge list: CID→CID includes, TID→TID includes, TID→CID references, CID→CID code-context-group. All IDs are strings (TIDs can have letter suffixes like "10003A").
-- `extraction_metadata.json` — Provenance (DICOM edition, date, counts, per-scheme breakdown)
+- `extraction_metadata.json` — Provenance (DICOM edition, date, counts, per-scheme breakdown). Also includes `total_tid_source_files` (raw TID/Templates/chapter_A file count, distinct from `total_tid_files_parsed`'s unique-TID count) and `template_graph_relationships` (`total_relationships` minus `code-context-group` edges) — both consumed directly by `docs/*.html` so those pages never need hardcoded counts touched up by hand.
 
 ## GCS Cache
 
@@ -79,11 +79,17 @@ gsutil -m cp -r gs://af-dev-storage/dcmterm/2026c/part16/ ./cache/part16/
 python -m dcmterms extract --source ./cache/part16 --output ./output
 ```
 
+**Archiving a new edition to GCS is a manual step, not automated.** `extract.yml` only *reads* from GCS (and only if the `GCS_SA_KEY` secret is set — it isn't, in this repo); it never writes to it. After extracting a new edition, archive it yourself: `gsutil -m cp -r ./cache/part16 gs://af-dev-storage/dcmterm/<edition>/part16`.
+
 ## BigQuery
 
-Tables loaded into `idc-sandbox-000.dcmterm` (`coded_entries`, `codes_unique`, `context_groups`, `templates`, `relationships`), refreshed by overwrite (`bq load --replace`) on each new edition. When loading with `bq load`, use explicit schemas for tables with comma-separated string fields (`includes`, `tid_includes`, `cid_references`) — `--autodetect` misinterprets them as floats. Use `--skip_leading_rows=1` with explicit schemas.
+Tables in `idc-sandbox-000.dcmterm` (`coded_entries`, `codes_unique`, `context_groups`, `templates`, `relationships`) are refreshed by overwrite on each new edition, via:
 
-`coded_entries.csv`'s nullable `context_group_cid` column is written by pandas as floats (e.g. `7191.0`), which BigQuery's strict INT64 CSV parser rejects — before loading, re-cast it with `df['context_group_cid'].astype('Int64')` and re-`to_csv` so nulls are empty and values are plain integers.
+```bash
+python -m dcmterms load-bigquery --output ./output
+```
+
+This uses `bq load --replace` with explicit schemas (`src/dcmterms/bigquery.py`) for every table — `--autodetect` misinterprets the comma-joined string columns (`includes`, `tid_includes`, `cid_references`) as floats — and re-casts `coded_entries`'s nullable `context_group_cid` column to a proper nullable int before loading, since pandas writes it as floats (e.g. `7191.0`) which BigQuery's strict INT64 CSV parser rejects. It verifies each load's row count against the source CSV and raises if they don't match. If the extraction pipeline's output schema changes (columns added/removed), update `TABLE_SCHEMAS`/`NULLABLE_INT_COLUMNS` in `src/dcmterms/bigquery.py` to match.
 
 ## Latest Extraction (2026c)
 
@@ -91,6 +97,19 @@ Tables loaded into `idc-sandbox-000.dcmterm` (`coded_entries`, `codes_unique`, `
 - 386 TIDs parsed, 4,069 template rows
 - 3,301 relationships: 624 CID→CID includes + 1,129 TID→TID includes + 1,539 TID→CID references + 9 CID→CID code-context-group
 - 21 coding schemes: SCT (9,681), DCM (3,984), MDC (1,348), LN (956), IBSI (154), UCUM (127), RADLEX (75), UMLS (65), NCIt (57), FMA (45), NCDR (39), plus 10 more
+
+## Updating to a New DICOM Edition
+
+`docs/*.html` render their edition badges and CID/TID/relationship/scheme counts live from `extraction_metadata.json`, so they need zero manual edits. What's still manual:
+
+1. Extract: `python -m dcmterms extract --source https://dicom.nema.org/medical/dicom/current/output/chtml/part16/ --cache-dir ./cache/part16 --output ./output -v`, then `python -m dcmterms validate --source ./cache/part16 --output ./output` and `pytest tests/ -v` as a sanity gate.
+2. Update `docs/data/*.parquet` + `extraction_metadata.json` — either trigger `extract.yml` (`gh workflow run extract.yml -f edition=<edition>`, requires no local step) or copy `output/*.parquet`/`extraction_metadata.json` into `docs/data/` by hand and commit.
+3. Archive to GCS (manual, see "GCS Cache" above): `gsutil -m cp -r ./cache/part16 gs://af-dev-storage/dcmterm/<edition>/part16`.
+4. Reload BigQuery: `python -m dcmterms load-bigquery --output ./output`.
+5. Hand-edit the remaining static prose, sourcing every number from the fresh `extraction_metadata.json` (never guess):
+   - `README.md`: the "Parsing N Context Group files and M SR Template source files" line (M is `total_tid_source_files`), the "Latest extraction (edition): ..." line, and the GCS path example.
+   - `CLAUDE.md`: the Project Goal intro sentence, the CID/TID file-count bullets under "Data Source" (including the `sect_TID_*.html`/`sect_*Templates.html`/`chapter_A.html` breakdown — re-derive from `ls cache/part16/sect_TID_*.html | wc -l` etc., these sub-counts aren't in the metadata), the "N CIDs have no main data table" and "N CIDs include other CIDs via M include relationships" bullets (check `dcmterms validate` output — these drift less often but do move), the GCS "Current:" line, and the whole "## Latest Extraction" section above.
+6. Final sweep: `grep -rn "<old edition>" --include="*.md" --include="*.html" --include="*.yml" . | grep -v tests/fixtures` should return nothing.
 
 ## Tech Stack
 
@@ -111,7 +130,8 @@ src/dcmterms/
   extract.py            — Orchestrate extraction, deduplication, output generation
   download.py           — Bulk download CHTML files from DICOM website (throttled)
   validate.py           — Validate extraction completeness against source files
-  cli.py                — CLI entry point (extract, download, validate subcommands)
+  bigquery.py            — Overwrite BigQuery tables from extracted CSVs via `bq` CLI
+  cli.py                — CLI entry point (extract, download, validate, load-bigquery subcommands)
 tests/
   fixtures/             — Real XHTML files for testing (CID 4, 10, 26, 29, 7150, 7194 + TID 2001, 10002 + chapter_A)
 output/                 — Generated artifacts (gitignored)
