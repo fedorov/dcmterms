@@ -10,6 +10,7 @@ from dcmterms.extract import (
     build_context_groups_df,
     build_relationships_df,
     parse_all_cids,
+    run_extraction,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -88,3 +89,14 @@ def test_relationships_df(results):
     ctxgrp = df[df["relationship"] == "code-context-group"]
     assert len(ctxgrp) == 9
     assert set(ctxgrp["source_id"].astype(str)) == {"7150"}
+
+
+def test_metadata_tid_and_graph_counts(tmp_path):
+    metadata = run_extraction(FIXTURES, tmp_path)
+    # Fixtures include sect_TID_2001.html, sect_TID_10002.html, chapter_A.html
+    assert metadata["total_tid_source_files"] == 3
+    # template_graph_relationships excludes code-context-group edges (9, from CID 7150)
+    assert (
+        metadata["template_graph_relationships"]
+        == metadata["total_relationships"] - 9
+    )

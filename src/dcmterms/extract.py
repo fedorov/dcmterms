@@ -255,8 +255,19 @@ def run_extraction(
         metadata["total_tid_files_parsed"] = len(tid_results)
         metadata["total_template_rows"] = int(templates_df["num_rows"].sum()) if not templates_df.empty else 0
         metadata["tid_relationships"] = len(tid_relationships_df)
+        metadata["total_tid_source_files"] = len(discover_tid_files(source_dir))
 
     metadata["total_relationships"] = len(relationships_df)
+    # Relationships relevant to the TID/CID template graph (everything except
+    # per-code context-group edges, which aren't shown in that graph).
+    code_context_group_count = (
+        int((relationships_df["relationship"] == "code-context-group").sum())
+        if not relationships_df.empty
+        else 0
+    )
+    metadata["template_graph_relationships"] = (
+        metadata["total_relationships"] - code_context_group_count
+    )
 
     # Write outputs
     tables = {

@@ -33,5 +33,7 @@
   "dcmterms_version": "0.1.0",
   "total_tid_files_parsed": 386,
   "total_template_rows": 4069,
-  "tid_relationships": 2668
+  "tid_relationships": 2668,
+  "total_tid_source_files": 334,
+  "template_graph_relationships": 3292
 }
