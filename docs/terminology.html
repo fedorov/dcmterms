@@ -224,7 +224,6 @@ const countBadge   = document.getElementById('countBadge');
 
 let conn = null;
 let debounceTimer = null;
-let expandedIdx = null;    // index of currently-expanded row
 let rowMeta = [];          // {scheme, codeVal, codeMeaning} per result row
 
 const urlParams = new URLSearchParams(location.search);
@@ -416,7 +415,6 @@ async function runSearch() {
 
 // ── Render results ───────────────────────────────────────────────────────────
 function renderResults(rows, total, term, scheme) {
-  expandedIdx = null;
   rowMeta = [];
 
   if (rows.length === 0) {
@@ -490,22 +488,9 @@ async function toggleCidRow(btn) {
     existing.remove();
     btn.classList.remove('open');
     btn.innerHTML = btn.innerHTML.replace('&#x25B4;', '&#x25BE;');
-    expandedIdx = null;
     return;
   }
 
-  // Collapse previously open expansion
-  if (expandedIdx !== null) {
-    const old = document.getElementById(`cid-exp-${expandedIdx}`);
-    if (old) old.remove();
-    const oldBtn = tableWrap.querySelector(`.cid-btn[data-idx="${expandedIdx}"]`);
-    if (oldBtn) {
-      oldBtn.classList.remove('open');
-      oldBtn.innerHTML = oldBtn.innerHTML.replace('&#x25B4;', '&#x25BE;');
-    }
-  }
-
-  expandedIdx = idx;
   btn.classList.add('open');
   btn.innerHTML = btn.innerHTML.replace('&#x25BE;', '&#x25B4;');
 
