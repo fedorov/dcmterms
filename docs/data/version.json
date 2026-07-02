@@ -1,6 +1,6 @@
 {
-  "sha": "69bfabb87266dfc69ad590190115e14af82c40e5",
-  "short_sha": "69bfabb",
-  "committed_at": "2026-07-02T17:34:57-04:00",
-  "message": "docs: update counts and references for DICOM 2026c edition"
+  "sha": "de3d0686de029a8d13f552081f44cae1b2b61a27",
+  "short_sha": "de3d068",
+  "committed_at": "2026-07-02T17:39:31-04:00",
+  "message": "Merge pull request #4 from fedorov/dependabot/github_actions/google-github-actions/setup-gcloud-3"
 }
