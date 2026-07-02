@@ -1,6 +1,6 @@
 {
-  "sha": "0367aad3104e8151af1da44e8bb616805a03ef20",
-  "short_sha": "0367aad",
-  "committed_at": "2026-07-02T17:40:16-04:00",
-  "message": "Merge pull request #2 from fedorov/dependabot/github_actions/google-github-actions/auth-3"
+  "sha": "df5498b5f884cfe33ba3aa3d06a59d6ff886c7cd",
+  "short_sha": "df5498b",
+  "committed_at": "2026-07-02T17:53:18-04:00",
+  "message": "Merge branch 'main' of https://github.com/fedorov/dcmterms"
 }
