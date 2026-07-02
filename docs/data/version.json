@@ -1,6 +1,6 @@
 {
-  "sha": "69bfabb87266dfc69ad590190115e14af82c40e5",
-  "short_sha": "69bfabb",
-  "committed_at": "2026-07-02T17:34:57-04:00",
-  "message": "docs: update counts and references for DICOM 2026c edition"
+  "sha": "0367aad3104e8151af1da44e8bb616805a03ef20",
+  "short_sha": "0367aad",
+  "committed_at": "2026-07-02T17:40:16-04:00",
+  "message": "Merge pull request #2 from fedorov/dependabot/github_actions/google-github-actions/auth-3"
 }
