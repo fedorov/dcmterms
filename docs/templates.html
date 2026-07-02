@@ -585,6 +585,16 @@ let debounceTimer = null;
 const pinnedNodes = new Set();
 let showPinnedNeighborhood = false;
 
+const urlParams = new URLSearchParams(location.search);
+
+function syncUrl() {
+  const params = new URLSearchParams();
+  const term = searchInput.value.trim();
+  if (term) params.set('q', term);
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const DICOM_BASE = 'https://dicom.nema.org/medical/dicom/current/output/chtml/part16/';
 // TIDs whose URL doesn't follow the default sect_TID_XXX.html pattern (from PS3.16 TOC)
@@ -1200,6 +1210,7 @@ document.getElementById('btnShowPinned').addEventListener('click', () => {
 document.getElementById('btnUnpinAll').addEventListener('click', unpinAll);
 
 searchInput.addEventListener('input', () => {
+  syncUrl();
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => { searchQuery = searchInput.value; rerender(); }, 250);
 });
@@ -1237,6 +1248,13 @@ async function init() {
     loadingText.textContent = 'Rendering…';
     initChart();
     renderTidList();
+
+    const qParam = urlParams.get('q');
+    if (qParam) {
+      searchInput.value = qParam;
+      searchQuery = qParam;
+      rerender();
+    }
 
     loadingOverlay.classList.add('hidden');
     document.querySelector('.status-row').style.display = 'none';

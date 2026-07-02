@@ -221,6 +221,17 @@ let debounceTimer = null;
 let expandedIdx = null;    // index of currently-expanded row
 let rowMeta = [];          // {scheme, codeVal, codeMeaning} per result row
 
+const urlParams = new URLSearchParams(location.search);
+
+function syncUrl() {
+  const params = new URLSearchParams();
+  const term = searchInput.value.trim();
+  if (term) params.set('q', term);
+  if (schemeSelect.value && schemeSelect.value !== 'ALL') params.set('scheme', schemeSelect.value);
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+}
+
 function setStatus(msg, isError = false) {
   statusBar.textContent = msg;
   statusBar.className = 'status-bar' + (isError ? ' error' : '');
@@ -249,6 +260,11 @@ async function loadMetadata() {
       opt.value = scheme;
       opt.textContent = `${scheme} (${count.toLocaleString()})`;
       schemeSelect.appendChild(opt);
+    }
+
+    const schemeParam = urlParams.get('scheme');
+    if (schemeParam && [...schemeSelect.options].some(o => o.value === schemeParam)) {
+      schemeSelect.value = schemeParam;
     }
   } catch {
     editionBadge.textContent = 'DICOM Terminology';
@@ -305,8 +321,15 @@ async function init() {
     setStatus('Ready — type to search (minimum 2 characters)');
     searchInput.disabled = false;
     schemeSelect.disabled = false;
-    searchInput.focus();
-    showWelcome();
+
+    const qParam = urlParams.get('q');
+    if (qParam) {
+      searchInput.value = qParam;
+      runSearch();
+    } else {
+      searchInput.focus();
+      showWelcome();
+    }
   } catch (e) {
     setStatus('Error initializing: ' + e.message, true);
     console.error(e);
@@ -494,8 +517,8 @@ async function toggleCidRow(btn) {
 }
 
 // ── Wire up events ───────────────────────────────────────────────────────────
-searchInput.addEventListener('input', scheduleSearch);
-schemeSelect.addEventListener('change', () => { clearTimeout(debounceTimer); runSearch(); });
+searchInput.addEventListener('input', () => { scheduleSearch(); syncUrl(); });
+schemeSelect.addEventListener('change', () => { clearTimeout(debounceTimer); runSearch(); syncUrl(); });
 
 // ── Info modal ────────────────────────────────────────────────────────────────
 const infoModal      = document.getElementById('infoModal');
