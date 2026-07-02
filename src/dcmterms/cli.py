@@ -113,6 +113,39 @@ def main(argv: list[str] | None = None) -> None:
         help="Enable verbose logging.",
     )
 
+    # load-bigquery command
+    from .bigquery import DEFAULT_DATASET, TABLE_SCHEMAS
+
+    bq_parser = subparsers.add_parser(
+        "load-bigquery",
+        help="Overwrite BigQuery tables from extracted CSVs.",
+    )
+    bq_parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("output"),
+        help="Directory with extracted CSV files (default: ./output).",
+    )
+    bq_parser.add_argument(
+        "--dataset",
+        type=str,
+        default=DEFAULT_DATASET,
+        help=f"BigQuery project:dataset (default: {DEFAULT_DATASET}).",
+    )
+    bq_parser.add_argument(
+        "--tables",
+        nargs="+",
+        choices=list(TABLE_SCHEMAS),
+        default=None,
+        help="Tables to load (default: all).",
+    )
+    bq_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging.",
+    )
+
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -130,6 +163,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_download(args)
     elif args.command == "validate":
         _run_validate(args)
+    elif args.command == "load-bigquery":
+        _run_load_bigquery(args)
 
 
 def _run_extract(args: argparse.Namespace) -> None:
@@ -201,3 +236,11 @@ def _run_download(args: argparse.Namespace) -> None:
         max_workers=args.workers,
     )
     print(f"Files downloaded to: {cache_dir}")
+
+
+def _run_load_bigquery(args: argparse.Namespace) -> None:
+    from .bigquery import load_all
+
+    print(f"Loading {args.output} into {args.dataset} ...")
+    load_all(output_dir=args.output, dataset=args.dataset, tables=args.tables)
+    print("Done.")
