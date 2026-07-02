@@ -1,0 +1,48 @@
+name: Stamp Deployed Version
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: stamp-version
+  cancel-in-progress: false
+
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write version file
+        run: |
+          mkdir -p docs/data
+          sha="${{ github.sha }}"
+          short_sha=$(echo "$sha" | cut -c1-7)
+          committed_at=$(git show -s --format=%cI "$sha")
+          message=$(git show -s --format=%s "$sha")
+          python3 - "$sha" "$short_sha" "$committed_at" "$message" <<'PYEOF'
+          import json, sys
+          sha, short_sha, committed_at, message = sys.argv[1:5]
+          with open('docs/data/version.json', 'w') as f:
+              json.dump({
+                  "sha": sha,
+                  "short_sha": short_sha,
+                  "committed_at": committed_at,
+                  "message": message,
+              }, f, indent=2)
+              f.write('\n')
+          PYEOF
+
+      - name: Commit and push version file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/data/version.json
+          short_sha=$(echo "${{ github.sha }}" | cut -c1-7)
+          git diff --staged --quiet || git commit -m "chore: stamp deployed version $short_sha [skip ci]"
+          git push

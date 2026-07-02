@@ -24,6 +24,11 @@
     header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
     .edition-badge { background: rgba(255,255,255,0.15); border-radius: 4px;
                      padding: 2px 9px; font-size: 12px; white-space: nowrap; }
+    .commit-badge { background: rgba(255,255,255,0.15); border-radius: 4px;
+                    padding: 2px 9px; font-size: 12px; white-space: nowrap;
+                    color: rgba(255,255,255,0.75); text-decoration: none;
+                    font-family: ui-monospace, monospace; display: none; }
+    .commit-badge:hover { color: white; background: rgba(255,255,255,0.25); }
 
     main { flex: 1; max-width: 860px; width: 100%; margin: 0 auto; padding: 40px 24px 60px; }
 
@@ -112,6 +117,7 @@
   <h1>dcmterms</h1>
   <button class="info-btn" id="infoBtn" title="About this data">i</button>
   <span class="edition-badge" id="editionBadge"></span>
+  <a class="commit-badge" id="commitBadge" href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener" title="Deployed commit"></a>
 </header>
 
 <div class="modal-backdrop hidden" id="infoModal">
@@ -202,6 +208,23 @@ async function loadMeta() {
   } catch { /* non-critical */ }
 }
 loadMeta();
+
+async function loadCommitInfo() {
+  const badge = document.getElementById('commitBadge');
+  try {
+    const resp = await fetch('./data/version.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const sha = String(data.sha ?? '');
+    const shortSha = String(data.short_sha ?? sha.slice(0, 7));
+    if (!shortSha) return;
+    badge.textContent = shortSha;
+    badge.href = `https://github.com/fedorov/dcmterms/commit/${sha || shortSha}`;
+    badge.title = `Deployed commit ${shortSha} — view on GitHub`;
+    badge.style.display = '';
+  } catch { /* non-critical */ }
+}
+loadCommitInfo();
 
 const infoModal      = document.getElementById('infoModal');
 const infoModalClose = document.getElementById('infoModalClose');

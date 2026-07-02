@@ -75,6 +75,11 @@
     .gh-link { margin-left: auto; color: rgba(255,255,255,0.65); text-decoration: none;
                font-size: 12px; white-space: nowrap; }
     .gh-link:hover { color: white; }
+    .commit-badge { background: rgba(255,255,255,0.15); border-radius: 4px;
+                    padding: 2px 9px; font-size: 12px; white-space: nowrap;
+                    color: rgba(255,255,255,0.75); text-decoration: none;
+                    font-family: ui-monospace, monospace; display: none; }
+    .commit-badge:hover { color: white; background: rgba(255,255,255,0.25); }
     .info-btn {
       background: rgba(255,255,255,0.15);
       border: 1px solid rgba(255,255,255,0.3);
@@ -480,6 +485,7 @@
   <h1>SR Templates</h1>
   <button class="info-btn" id="infoBtn" title="About this data">i</button>
   <span class="badge" id="editionBadge">Loading…</span>
+  <a class="commit-badge" id="commitBadge" href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener" title="Deployed commit"></a>
   <a class="gh-link" href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener" title="Feedback &amp; suggestions welcome — file an issue on GitHub">GitHub ↗</a>
   <span class="badge" id="countBadge"></span>
   <div class="status-row">
@@ -691,6 +697,25 @@ async function loadMetadata() {
     const meta = await (await fetch('./data/extraction_metadata.json')).json();
     editionBadge.textContent = `Edition: ${meta.dicom_edition} · ${meta.extraction_date}`;
   } catch { editionBadge.textContent = 'DICOM Terminology'; }
+}
+
+// ── Deployed version ─────────────────────────────────────────────────────────
+async function loadCommitInfo() {
+  const badge = document.getElementById('commitBadge');
+  try {
+    const resp = await fetch('./data/version.json', { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const sha = String(data.sha ?? '');
+    const shortSha = String(data.short_sha ?? sha.slice(0, 7));
+    if (!shortSha) return;
+    badge.textContent = shortSha;
+    badge.href = `https://github.com/fedorov/dcmterms/commit/${sha || shortSha}`;
+    badge.title = `Deployed commit ${shortSha} — view on GitHub`;
+    badge.style.display = '';
+  } catch (e) {
+    console.warn('Could not load version info:', e);
+  }
 }
 
 // ── DuckDB init ───────────────────────────────────────────────────────────────
@@ -1224,6 +1249,7 @@ async function init() {
       throw new Error('Could not load the database engine. Check your network connection and reload the page.');
     }
     await loadMetadata();
+    loadCommitInfo();
     setStatus('Loading data…', 'loading');
 
     const db = await initDB();
