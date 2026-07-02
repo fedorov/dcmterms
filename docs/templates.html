@@ -712,7 +712,7 @@ async function loadCommitInfo() {
     badge.textContent = shortSha;
     badge.href = `https://github.com/fedorov/dcmterms/commit/${sha || shortSha}`;
     badge.title = `Deployed commit ${shortSha} — view on GitHub`;
-    badge.style.display = '';
+    badge.style.display = 'inline-block';
   } catch (e) {
     console.warn('Could not load version info:', e);
   }
