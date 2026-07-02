@@ -81,7 +81,9 @@ python -m dcmterms extract --source ./cache/part16 --output ./output
 
 ## BigQuery
 
-Tables loaded into `idc-sandbox-000.dcmterm`. When loading with `bq load`, use explicit schemas for tables with comma-separated string fields (`includes`, `tid_includes`, `cid_references`) — `--autodetect` misinterprets them as floats. Use `--skip_leading_rows=1` with explicit schemas.
+Tables loaded into `idc-sandbox-000.dcmterm` (`coded_entries`, `codes_unique`, `context_groups`, `templates`, `relationships`), refreshed by overwrite (`bq load --replace`) on each new edition. When loading with `bq load`, use explicit schemas for tables with comma-separated string fields (`includes`, `tid_includes`, `cid_references`) — `--autodetect` misinterprets them as floats. Use `--skip_leading_rows=1` with explicit schemas.
+
+`coded_entries.csv`'s nullable `context_group_cid` column is written by pandas as floats (e.g. `7191.0`), which BigQuery's strict INT64 CSV parser rejects — before loading, re-cast it with `df['context_group_cid'].astype('Int64')` and re-`to_csv` so nulls are empty and values are plain integers.
 
 ## Latest Extraction (2026c)
 
