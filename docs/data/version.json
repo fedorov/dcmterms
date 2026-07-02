@@ -1,6 +1,6 @@
 {
-  "sha": "98e452874a97ee49803fc8e7e080b759414e9f58",
-  "short_sha": "98e4528",
-  "committed_at": "2026-07-02T16:40:40-04:00",
-  "message": "Allow multiple CID dropdowns to stay open on terminology page"
+  "sha": "69bfabb87266dfc69ad590190115e14af82c40e5",
+  "short_sha": "69bfabb",
+  "committed_at": "2026-07-02T17:34:57-04:00",
+  "message": "docs: update counts and references for DICOM 2026c edition"
 }
