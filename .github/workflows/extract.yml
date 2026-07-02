@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       edition:
-        description: 'DICOM edition (e.g. 2026b)'
+        description: 'DICOM edition (e.g. 2026c)'
         required: true
-        default: '2026b'
+        default: '2026c'
 
 jobs:
   extract:
@@ -105,9 +105,7 @@ jobs:
       - name: Update site data files
         run: |
           mkdir -p docs/data
-          cp output/codes_unique.parquet docs/data/
-          cp output/coded_entries.parquet docs/data/
-          cp output/context_groups.parquet docs/data/
+          cp output/*.parquet docs/data/
           cp output/extraction_metadata.json docs/data/
 
       - name: Commit and push updated site data
