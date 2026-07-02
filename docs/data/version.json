@@ -1,6 +1,6 @@
 {
-  "sha": "ebed540835970bce05347aa30d7f788e07eda020",
-  "short_sha": "ebed540",
-  "committed_at": "2026-07-02T16:33:52-04:00",
-  "message": "Fix commit badge staying hidden after load"
+  "sha": "98e452874a97ee49803fc8e7e080b759414e9f58",
+  "short_sha": "98e4528",
+  "committed_at": "2026-07-02T16:40:40-04:00",
+  "message": "Allow multiple CID dropdowns to stay open on terminology page"
 }
