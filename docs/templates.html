@@ -503,7 +503,7 @@
        <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part16/PS3.16.html"
           target="_blank" rel="noopener">DICOM Standard Part 16</a>
        CHTML pages using an automated Python pipeline.</p>
-    <p>The graph shows 386 Structured Reporting Templates (TIDs) and their include and
+    <p>The graph shows <span class="tid-count">386</span> Structured Reporting Templates (TIDs) and their include and
        context group reference relationships. Node sizes reflect connectivity degree.
        Source data is regenerated with each new DICOM edition.</p>
     <p>Open source on <a href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener">GitHub ↗</a>
@@ -696,6 +696,8 @@ async function loadMetadata() {
   try {
     const meta = await (await fetch('./data/extraction_metadata.json')).json();
     editionBadge.textContent = `Edition: ${meta.dicom_edition} · ${meta.extraction_date}`;
+    document.querySelectorAll('.tid-count').forEach(el =>
+      el.textContent = (meta.total_tid_files_parsed ?? 0).toLocaleString());
   } catch { editionBadge.textContent = 'DICOM Terminology'; }
 }
 

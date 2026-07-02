@@ -129,7 +129,7 @@
        <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part16/PS3.16.html"
           target="_blank" rel="noopener">DICOM Standard Part 16</a>
        CHTML pages using an automated Python pipeline.
-       The 1,467 Context Groups and 386 SR Templates are extracted and consolidated
+       The <span class="cg-count">1,467</span> Context Groups and <span class="tid-count">386</span> SR Templates are extracted and consolidated
        into structured, searchable resources.</p>
     <p>Data is regenerated with each new DICOM edition and published here as Parquet files
        queryable directly in the browser via DuckDB-WASM.</p>
@@ -141,8 +141,8 @@
 <main>
   <section class="hero">
     <p>The DICOM Standard defines the rules of play &mdash; and dictates the terms.
-       But with over 14,000 coded concepts spread across 1,467 Context Groups and
-       386 Structured Reporting Templates in
+       But with over 14,000 coded concepts spread across <span class="cg-count">1,467</span> Context Groups and
+       <span class="tid-count">386</span> Structured Reporting Templates in
        <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part16/PS3.16.html"
           target="_blank" rel="noopener">Part 16</a>,
        navigating those terms is no small feat.
@@ -167,10 +167,10 @@
     <div class="card soon">
       <div class="card-icon">📂</div>
       <div class="card-title">Context Groups</div>
-      <div class="card-desc">Browse the 1,467 DICOM Context Groups (CIDs) and their
+      <div class="card-desc">Browse the <span class="cg-count">1,467</span> DICOM Context Groups (CIDs) and their
         coded entries, with include relationships resolved.</div>
       <div class="card-footer">
-        <span class="card-stats">1,467 context groups</span>
+        <span class="card-stats"><span class="cg-count">1,467</span> context groups</span>
         <span class="coming-soon-badge">Coming soon</span>
       </div>
     </div>
@@ -178,10 +178,10 @@
     <a class="card live" href="templates.html">
       <div class="card-icon">📋</div>
       <div class="card-title">SR Templates</div>
-      <div class="card-desc">Explore the 386 Structured Reporting Templates (TIDs) and
+      <div class="card-desc">Explore the <span class="tid-count">386</span> Structured Reporting Templates (TIDs) and
         their include and Context Group reference relationships interactively.</div>
       <div class="card-footer">
-        <span class="card-stats">386 templates · 3,292 relationships</span>
+        <span class="card-stats"><span class="tid-count">386</span> templates · <span class="tgraph-rel-count">3,292</span> relationships</span>
         <span class="card-action">Open →</span>
       </div>
     </a>
@@ -205,6 +205,11 @@ async function loadMeta() {
     const schemes = Object.keys(meta.scheme_counts ?? {}).length;
     stats.textContent =
       `${(meta.unique_codes ?? 0).toLocaleString()} codes · ${schemes} schemes`;
+    const fill = (selector, value) => document.querySelectorAll(selector)
+      .forEach(el => el.textContent = (value ?? 0).toLocaleString());
+    fill('.cg-count', meta.total_cid_files_parsed);
+    fill('.tid-count', meta.total_tid_files_parsed);
+    fill('.tgraph-rel-count', meta.template_graph_relationships);
   } catch { /* non-critical */ }
 }
 loadMeta();

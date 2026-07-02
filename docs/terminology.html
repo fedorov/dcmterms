@@ -167,9 +167,9 @@
        <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part16/PS3.16.html"
           target="_blank" rel="noopener">DICOM Standard Part 16</a>
        CHTML pages using an automated Python pipeline.
-       The 1,467 Context Groups (CIDs) are traversed and their coded entries
+       The <span class="cg-count">1,467</span> Context Groups (CIDs) are traversed and their coded entries
        consolidated into a searchable table.</p>
-    <p>Codes from 21 coding schemes are included: SNOMED CT, DCM, LOINC, UCUM, NCIt,
+    <p>Codes from <span class="scheme-count">21</span> coding schemes are included: SNOMED CT, DCM, LOINC, UCUM, NCIt,
        RADLEX, and more. Code-to-CID membership is preserved so you can trace any
        concept back to its source context groups.</p>
     <p>Open source on <a href="https://github.com/fedorov/dcmterms" target="_blank" rel="noopener">GitHub ↗</a>
@@ -225,6 +225,7 @@ const countBadge   = document.getElementById('countBadge');
 let conn = null;
 let debounceTimer = null;
 let rowMeta = [];          // {scheme, codeVal, codeMeaning} per result row
+let schemeCount = 21;      // fallback if metadata fetch fails
 
 const urlParams = new URLSearchParams(location.search);
 
@@ -260,6 +261,10 @@ async function loadMetadata() {
     countBadge.textContent   = `${meta.unique_codes.toLocaleString()} unique codes`;
 
     const schemes = Object.entries(meta.scheme_counts ?? {}).sort((a, b) => b[1] - a[1]);
+    schemeCount = schemes.length;
+    document.querySelectorAll('.cg-count').forEach(el =>
+      el.textContent = (meta.total_cid_files_parsed ?? 0).toLocaleString());
+    document.querySelectorAll('.scheme-count').forEach(el => el.textContent = schemeCount);
     for (const [scheme, count] of schemes) {
       const opt = document.createElement('option');
       opt.value = scheme;
@@ -367,7 +372,7 @@ function showWelcome() {
   tableWrap.innerHTML = `
     <div class="placeholder">
       <h2>Search DICOM coded terminology</h2>
-      <p>Find coded concepts by meaning or code value across all 21 coding schemes.<br>
+      <p>Find coded concepts by meaning or code value across all ${schemeCount} coding schemes.<br>
          CID membership is shown for each code.</p>
       <p style="margin-top:14px">
         Try: <code>lung</code> &nbsp; <code>left ventricle</code> &nbsp;
