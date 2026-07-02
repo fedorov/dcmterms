@@ -4,7 +4,7 @@ Extract all coded terminology and template definitions from DICOM Standard Part 
 
 ## Project Goal
 
-The DICOM standard uses coded terms (SNOMED-CT, LOINC, NCIt, UCUM, DCM, etc.) across 1,466 Context Groups and 384 SR Templates in Part 16, but there is no single accessible resource listing them or their relationships. This project provides reproducible tooling to parse the standard and produce consolidated tabular outputs.
+The DICOM standard uses coded terms (SNOMED-CT, LOINC, NCIt, UCUM, DCM, etc.) across 1,467 Context Groups and 386 SR Templates in Part 16, but there is no single accessible resource listing them or their relationships. This project provides reproducible tooling to parse the standard and produce consolidated tabular outputs.
 
 See PLAN.md for the full roadmap (M1–M5).
 
@@ -14,8 +14,8 @@ CHTML (chunked XHTML) pages from the DICOM standard website. Parsed with stdlib 
 
 - Source URL: `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/`
 - CID/TID file discovery uses the directory listing at the base URL
-- CID files: `sect_CID_*.html` (1,466 individual files)
-- TID files: `sect_TID_*.html` (300 individual files) + `sect_*Templates.html` (32 section files) + `chapter_A.html` (57 base templates like TID 300–1701). Total: 384 unique TIDs across 333 source files.
+- CID files: `sect_CID_*.html` (1,467 individual files)
+- TID files: `sect_TID_*.html` (301 individual files) + `sect_*Templates.html` (32 section files) + `chapter_A.html` (58 base templates like TID 300–1701). Total: 386 unique TIDs across 334 source files.
 - Downloaded files are cached in `cache/part16/` to avoid re-fetching
 - Downloads are throttled (2 workers, 0.25s delay) to be polite to the NEMA server
 
@@ -27,7 +27,7 @@ CHTML (chunked XHTML) pages from the DICOM standard website. Parsed with stdlib 
 - Column lookup is by name, not position — handles all header variants
 - Include directives appear as table rows with colspan > 1, text like "Include CID 4030"
 - 227 CIDs include other CIDs via 624 include relationships; max include depth is 4
-- 30 CIDs have no main data table (retired/empty context groups) — logged as warnings and skipped
+- 31 CIDs have no main data table (retired/empty context groups) — logged as warnings and skipped
 - 99 CIDs are pure aggregators (only includes, no direct entries)
 - Retired codes (e.g., SRT entries in CID 26) appear in `div.note` sections — parser correctly ignores these
 - Some CIDs have a per-row "context group" column (e.g., CID 7150 "Segmentation Property Category" has "Segmentation Property Type Context Group") — these columns are in `CONTEXT_GROUP_COLUMNS` set and extracted as `context_group_cid` on `CodedEntry`; also stored as `code-context-group` edges in `relationships`
@@ -67,13 +67,13 @@ Downloaded CHTML source files are archived in GCS organized by DICOM edition:
 gs://af-dev-storage/dcmterm/<edition>/part16/
 ```
 
-Current: `gs://af-dev-storage/dcmterm/2026b/part16/` (1,800 files, 54 MB)
+Current: `gs://af-dev-storage/dcmterm/2026c/part16/` (1,801 files, 54 MB)
 
 To use the GCS cache instead of downloading from the DICOM website:
 
 ```bash
 # Sync GCS cache to local
-gsutil -m cp -r gs://af-dev-storage/dcmterm/2026b/part16/ ./cache/part16/
+gsutil -m cp -r gs://af-dev-storage/dcmterm/2026c/part16/ ./cache/part16/
 
 # Then extract from local cache
 python -m dcmterms extract --source ./cache/part16 --output ./output
@@ -83,12 +83,12 @@ python -m dcmterms extract --source ./cache/part16 --output ./output
 
 Tables loaded into `idc-sandbox-000.dcmterm`. When loading with `bq load`, use explicit schemas for tables with comma-separated string fields (`includes`, `tid_includes`, `cid_references`) — `--autodetect` misinterprets them as floats. Use `--skip_leading_rows=1` with explicit schemas.
 
-## Latest Extraction (2026b)
+## Latest Extraction (2026c)
 
-- 1,466 CID files parsed, 16,570 coded entries, 14,756 unique codes
-- 384 TIDs parsed, 4,039 template rows
-- 3,290 relationships: 624 CID→CID includes + 1,123 TID→TID includes + 1,534 TID→CID references + 9 CID→CID code-context-group
-- 21 coding schemes: SCT (9,680), DCM (3,973), MDC (1,348), LN (956), IBSI (154), UCUM (127), RADLEX (75), UMLS (65), NCIt (57), FMA (45), NCDR (39), plus 10 more
+- 1,467 CID files parsed, 16,582 coded entries, 14,765 unique codes
+- 386 TIDs parsed, 4,069 template rows
+- 3,301 relationships: 624 CID→CID includes + 1,129 TID→TID includes + 1,539 TID→CID references + 9 CID→CID code-context-group
+- 21 coding schemes: SCT (9,681), DCM (3,984), MDC (1,348), LN (956), IBSI (154), UCUM (127), RADLEX (75), UMLS (65), NCIt (57), FMA (45), NCDR (39), plus 10 more
 
 ## Tech Stack
 

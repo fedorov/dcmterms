@@ -8,7 +8,7 @@ dcmterms extracts all coded terminology and template definitions from Part 16 in
 
 ## What it produces
 
-Parsing 1,466 Context Group files and 333 SR Template source files from Part 16 yields:
+Parsing 1,467 Context Group files and 334 SR Template source files from Part 16 yields:
 
 | File | Description |
 |------|-------------|
@@ -19,7 +19,7 @@ Parsing 1,466 Context Group files and 333 SR Template source files from Part 16 
 | `relationships` | Normalized edge list: CID→CID includes, TID→TID includes, TID→CID references |
 | `extraction_metadata.json` | Provenance: DICOM edition, date, counts, per-scheme breakdown |
 
-Latest extraction (2026b): **16,570 coded entries · 14,756 unique codes · 21 coding schemes · 4,039 template rows · 3,290 relationships**
+Latest extraction (2026c): **16,582 coded entries · 14,765 unique codes · 21 coding schemes · 4,069 template rows · 3,301 relationships**
 
 ## Installation
 
@@ -61,7 +61,7 @@ python -m dcmterms validate --source ./cache/part16 --output ./output
 Source files are archived in GCS by DICOM edition:
 
 ```bash
-gsutil -m cp -r gs://af-dev-storage/dcmterm/2026b/part16/ ./cache/part16/
+gsutil -m cp -r gs://af-dev-storage/dcmterm/2026c/part16/ ./cache/part16/
 python -m dcmterms extract --source ./cache/part16 --output ./output
 ```
 
