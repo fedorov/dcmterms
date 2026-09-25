@@ -1,14 +1,14 @@
 {
-  "dicom_edition": "2026c",
-  "extraction_date": "2026-07-02",
+  "dicom_edition": "2026d",
+  "extraction_date": "2026-09-25",
   "source": "cache/part16",
   "total_cid_files_parsed": 1467,
-  "total_coded_entries": 16582,
+  "total_coded_entries": 16581,
   "unique_codes": 14765,
   "cids_with_includes": 227,
   "total_relationships": 3301,
   "scheme_counts": {
-    "SCT": 9681,
+    "SCT": 9680,
     "DCM": 3984,
     "MDC": 1348,
     "LN": 956,
