@@ -1,6 +1,6 @@
 {
-  "sha": "90d7bd07597401998dc7d9144de0264fb9938988",
-  "short_sha": "90d7bd0",
-  "committed_at": "2026-07-02T18:33:14-04:00",
-  "message": "Merge branch 'main' of https://github.com/fedorov/dcmterms"
+  "sha": "f91d160e9051a28302204d80a61dcb148c9ecf19",
+  "short_sha": "f91d160",
+  "committed_at": "2026-09-25T18:52:49-04:00",
+  "message": "Merge pull request #6 from fedorov/dependabot/github_actions/actions/setup-python-7"
 }
